@@ -3,6 +3,9 @@
 
 export const CODES = { wrong: '08051020', right: '08051022' };
 
+// Where tester feedback goes: a pre-filled issue on this GitHub repo.
+export const FEEDBACK = { repo: 'const-ahmed/innovation-challenge-as-is-process', product: 'Oranges Across the Atlantic' };
+
 export const VOYAGE = { from: 'Florida', to: 'Southampton', days: 10 };   // illustrative
 
 export const FORM = [
@@ -27,6 +30,7 @@ export const LINES = {
   prepare: {
     intro: 'She runs a small fruit import business in the UK. Today she’s ordering a container of fresh navel oranges from Florida.',
     docs: 'She arranges the shipment and the paperwork that travels with it.',
+    fly: 'The paperwork goes ahead to the grower in Florida.',
     pack: 'In the USA, the oranges are packed and loaded into a refrigerated container.',
     load: 'The container is lifted onto a cargo ship bound for the UK.',
   },
@@ -34,6 +38,7 @@ export const LINES = {
     sail: 'The ship sets off across the Atlantic.',
     map: 'Florida to Southampton: about ten days at sea.',
     desk: 'While the ship is at sea, she starts her customs declaration.',
+    details: 'She fills in who is importing what, and where it comes from.',
     code: `She enters commodity code ${CODES.wrong}. It’s outdated: navel oranges now need ${CODES.right}.`,
     branch: 'Here the story splits. Choose what happens next.',
   },
@@ -52,9 +57,11 @@ export const LINES = {
     rewind: `Back to the moment she types ${CODES.wrong}…`,
     tap: 'Before she submits, the pre-submission checker steps in.',
     explain: 'It spots the outdated commodity code and shows the right one.',
+    fixing: 'She swaps in the current code.',
     fix: 'She updates the code and submits a declaration that will pass.',
     accepted: 'Accepted first time.',
-    arrive: 'The ship arrives with the declaration already accepted.',
+    crossing: 'The ship sails on with the declaration already accepted.',
+    arrive: 'The ship docks in Southampton.',
     clear: 'The container clears the border without waiting.',
     home: 'Her oranges arrive fresh and on time.',
   },

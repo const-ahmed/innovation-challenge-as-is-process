@@ -3,6 +3,7 @@ import { Stage } from './engine/stage.js';
 import { buildWorld } from './story/world.js';
 import { Overlay } from './ui/overlay.js';
 import { Declaration } from './ui/declaration.js';
+import { Feedback } from './ui/feedback.js';
 import { Director } from './story/director.js';
 import { CHAPTERS } from './story/script.js';
 import { CAM } from './story/cameras.js';
@@ -36,16 +37,36 @@ function setPaused(on) {
 }
 pauseBtn.addEventListener('click', () => setPaused(!stage.clock.paused));
 $('#restart').addEventListener('click', () => { setPaused(false); director.play('prepare'); });
-addEventListener('keydown', e => {
-  if (e.code === 'Space' && !e.target.closest('button, input, textarea')) { e.preventDefault(); setPaused(!stage.clock.paused); }
+
+// scene-by-scene back / next
+const prevBtn = $('#prevScene'), nextBtn = $('#nextScene');
+const chapterName = Object.fromEntries(CHAPTERS.map(c => [c.id, c.label]));
+const step = dir => { setPaused(false); dir < 0 ? director.prev() : director.next(); };
+prevBtn.addEventListener('click', () => step(-1));
+nextBtn.addEventListener('click', () => step(1));
+director.onChange(({ chapter, beat, count, label }) => {
+  ui.setBeat({ chapterName: chapterName[chapter], beat, count, label });
+  prevBtn.disabled = !director.canPrev();
+  nextBtn.disabled = !director.canNext();
 });
 
-// #a opens a scenario directly; #a~12 also fast-forwards 12 seconds into it (for review).
-const [first, skip] = location.hash.slice(1).split('~');
+const feedback = new Feedback({ director, chapters: CHAPTERS, pause: { get: () => stage.clock.paused, set: setPaused } });
+
+addEventListener('keydown', e => {
+  if (feedback.isOpen || e.target.closest('input, textarea, select')) return;
+  if (e.code === 'Space' && !e.target.closest('button')) { e.preventDefault(); setPaused(!stage.clock.paused); }
+  if (e.key === 'ArrowRight' && director.canNext()) step(1);
+  if (e.key === 'ArrowLeft' && director.canPrev()) step(-1);
+});
+
+// #a opens a chapter, #a.3 its third scene; #a~12 also fast-forwards 12 seconds (for review).
+const [where, skip] = location.hash.slice(1).split('~');
+const [first, sceneNo] = where.split('.');
 if (skip) {
   window.__story = { stage, director, world, ui, form, CAM };
   stage.clock.rate = 30;
   const stop = stage.onTick(() => { if (stage.clock.now > skip * 1000) { stage.clock.rate = 1; stop(); } });
 }
 document.body.classList.add('is-ready');
-director.play(scenes[first] ? first : 'prepare');
+if (scenes[first]) director.play(first, { beat: Math.min(Math.max(0, (+sceneNo || 1) - 1), scenes[first].beats.length - 1) });
+else director.play('prepare');

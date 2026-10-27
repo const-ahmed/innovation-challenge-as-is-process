@@ -94,6 +94,10 @@ export class Overlay {
       this.chapterButtons.set(ch.id, b);
     });
   }
+  // "Preparing · Scene 2 of 5 · The paperwork"
+  setBeat({ chapterName, beat, count, label }) {
+    $('#captionLabel').textContent = `${chapterName} · Scene ${beat + 1} of ${count} · ${label}`;
+  }
   setChapter(id) {
     for (const [k, b] of this.chapterButtons) { b.classList.toggle('is-on', k === id); b.setAttribute('aria-current', k === id ? 'step' : 'false'); }
     document.body.dataset.chapter = id;

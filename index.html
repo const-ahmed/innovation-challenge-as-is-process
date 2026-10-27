@@ -136,7 +136,24 @@
   }
   #caption.is-in { animation: captionIn .45s ease both; }
   @keyframes captionIn { from { opacity: 0; translate: 0 8px; } }
-  #captionLabel { font: 600 11px/1 var(--display); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+  #caption { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 10px 12px; }
+  .caption__body { display: grid; gap: 5px; min-width: 0; }
+  .caption__top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .caption__fb {
+    flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px; border-radius: 6px; border: 1px solid var(--line);
+    background: transparent; color: var(--muted); cursor: pointer; font: 600 11px/1 var(--display); letter-spacing: .06em;
+  }
+  .caption__fb svg, #feedbackBtn svg { width: 13px; height: 13px; }
+  .caption__fb:hover { color: var(--ink); border-color: var(--muted); }
+  .nav-btn {
+    width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    display: grid; place-items: center; cursor: pointer; transition: background .15s, border-color .15s, opacity .15s;
+  }
+  .nav-btn svg { width: 16px; height: 16px; }
+  .nav-btn:hover:not(:disabled) { border-color: var(--ink); background: #fff; }
+  .nav-btn:disabled { opacity: .3; cursor: default; }
+  .nav-btn:focus-visible, .caption__fb:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  #captionLabel { font: 600 11px/1.2 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); min-width: 0; }
   [data-chapter="a"] #captionLabel { color: var(--red); }
   [data-chapter="b"] #captionLabel { color: var(--teal-deep); }
   #captionText { margin: 0; font: 500 17px/1.42 var(--body); text-wrap: pretty; }
@@ -236,6 +253,35 @@
   }
   .decl__cursor.is-on { opacity: 1; }
   .decl__cursor.is-click { scale: .8; }
+
+  /* ---------- feedback panel ---------- */
+  .feedback {
+    position: fixed; z-index: 32; right: max(16px, env(safe-area-inset-right, 0px)); top: calc(max(14px, env(safe-area-inset-top, 0px)) + 56px);
+    width: min(380px, calc(100% - 32px)); max-height: calc(100% - 90px); overflow: auto;
+    background: var(--panel); border: 2px solid var(--ink); border-radius: 14px; padding: 16px 18px 18px; display: grid; gap: 12px;
+    box-shadow: 0 24px 50px -22px rgb(30 20 10 / .55); opacity: 0; transform: translateY(-8px) scale(.98); transform-origin: top right;
+    transition: opacity .22s ease, transform .3s cubic-bezier(.34, 1.4, .64, 1);
+  }
+  .feedback.is-in { opacity: 1; transform: none; }
+  .feedback__head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+  .feedback__eyebrow { font: 600 11px/1 var(--display); letter-spacing: .18em; text-transform: uppercase; color: var(--teal-deep); }
+  .feedback h2 { margin: 5px 0 0; font: 700 22px/1.05 var(--display); }
+  .feedback__close { flex: none; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; font-size: 17px; line-height: 1; }
+  .feedback__close:hover { color: var(--ink); border-color: var(--muted); }
+  .feedback__intro { margin: 0; font-size: 14px; line-height: 1.45; }
+  .feedback__field { display: grid; gap: 5px; }
+  .feedback__field > span { font: 600 11px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .feedback__field i { font-style: normal; text-transform: none; letter-spacing: 0; }
+  .feedback select, .feedback textarea, .feedback input {
+    width: 100%; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); padding: 8px 10px; font: 400 14.5px/1.4 var(--body);
+  }
+  .feedback textarea { resize: vertical; min-height: 110px; }
+  .feedback select:focus, .feedback textarea:focus, .feedback input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 20%, transparent); }
+  .feedback__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .feedback__actions .btn { text-decoration: none; }
+  .feedback__actions [aria-disabled="true"], .feedback__actions :disabled { opacity: .45; pointer-events: none; }
+  .feedback__note { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+  .feedback__note:empty { display: none; }
 
   /* ---------- at-sea counter ---------- */
   #sea {
@@ -344,7 +390,9 @@
     .decl { max-height: 48vh; }
     .has-form .stage-bottom { padding-right: max(16px, env(safe-area-inset-right, 0px)); bottom: auto; top: 112px; }
     .has-form .hint { display: none; }
-    #caption { padding: 10px 13px 11px; }
+    #caption { padding: 8px 8px 10px; gap: 8px; }
+    .nav-btn { width: 34px; height: 34px; }
+    .caption__fb { font-size: 0; gap: 0; padding: 4px 6px; }
     #captionText { font-size: 15px; }
     #branch { grid-template-columns: 1fr; }
     #hold, #sea { top: 118px; width: 180px; }
@@ -369,6 +417,10 @@
   </div>
   <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
   <div class="controls">
+    <button class="btn btn--ghost" id="feedbackBtn" type="button" data-feedback>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></svg>
+      <span>Feedback</span>
+    </button>
     <button class="btn btn--ghost" id="pause" type="button" aria-pressed="false">
       <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3" y="2.5" width="3.4" height="11" rx="1"/><rect x="9.6" y="2.5" width="3.4" height="11" rx="1"/></svg>
       <span>Pause</span>
@@ -396,10 +448,21 @@
     </button>
   </div>
   <div id="caption" hidden>
-    <span id="captionLabel"></span>
-    <p id="captionText"></p>
+    <button class="nav-btn" id="prevScene" type="button" aria-label="Previous scene" title="Previous scene (←)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
+    </button>
+    <div class="caption__body">
+      <div class="caption__top">
+        <span id="captionLabel"></span>
+        <button class="caption__fb" type="button" data-feedback><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></svg>Feedback on this scene</button>
+      </div>
+      <p id="captionText"></p>
+    </div>
+    <button class="nav-btn" id="nextScene" type="button" aria-label="Next scene" title="Next scene (→)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>
+    </button>
   </div>
-  <div class="hint">Drag to look around · Scroll to zoom · Click anything to inspect · Space to pause</div>
+  <div class="hint">← → to move between scenes · Drag to look around · Scroll to zoom · Click anything to inspect · Space to pause</div>
 </div>
 
 <aside id="sea" hidden aria-live="polite">
@@ -420,6 +483,26 @@
 <div id="rewind" hidden><div><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.8-4.1"/><path d="M2.5 2v3.5H6"/></svg><span id="rewindText"></span></div></div>
 
 <section id="end" hidden aria-live="polite"></section>
+
+<aside class="feedback" id="feedback" hidden role="dialog" aria-modal="false" aria-labelledby="fbTitle">
+  <header class="feedback__head">
+    <div>
+      <div class="feedback__eyebrow">Testing the demo</div>
+      <h2 id="fbTitle">Share your feedback</h2>
+    </div>
+    <button type="button" class="feedback__close" id="fbClose" aria-label="Close feedback">×</button>
+  </header>
+  <p class="feedback__intro">Tell us what worked, what didn’t, and anything that was unclear. The story is paused while you write.</p>
+  <label class="feedback__field" for="fbPart"><span>Which part?</span><select id="fbPart"></select></label>
+  <label class="feedback__field" for="fbText"><span>Your feedback</span><textarea id="fbText" rows="6" placeholder="e.g. I didn’t understand why the declaration was rejected…"></textarea></label>
+  <label class="feedback__field" for="fbName"><span>Your name <i>(optional)</i></span><input id="fbName" type="text" autocomplete="name"></label>
+  <div class="feedback__actions">
+    <a class="btn btn--primary" id="fbSend" href="#" target="_blank" rel="noopener" aria-disabled="true">Post on GitHub ↗</a>
+    <button class="btn btn--ghost" id="fbCopy" type="button" disabled>Copy text</button>
+  </div>
+  <p class="feedback__note" id="fbStatus" aria-live="polite"></p>
+  <p class="feedback__note">Posting opens a pre-filled issue on GitHub, which needs a GitHub account. No account? Copy the text and send it to the team.</p>
+</aside>
 
 <article class="card is-hidden" id="card" aria-live="polite">
   <header>
