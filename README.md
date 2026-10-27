@@ -13,10 +13,20 @@ The page uses ES modules, so open it through a local web server, not by double-c
 
 ```sh
 python3 -m http.server 8000
-# then open http://localhost:8000/customs-journey.html
+# then open http://localhost:8000/
 ```
 
 Add `#prepare`, `#journey`, `#a` or `#b` to the URL to open a chapter directly.
+
+## Deploying
+
+`index.html` is the deployable page; any static host can serve the folder as it is, with no build step. On Vercel, use the "Other" preset with the root directory `./`.
+
+`index.html` is generated from `customs-journey.html`, which has no document skeleton because the Claude artifact host adds one. After editing `customs-journey.html`, rebuild:
+
+```sh
+node scripts/build-index.mjs
+```
 
 ## Where things live
 
