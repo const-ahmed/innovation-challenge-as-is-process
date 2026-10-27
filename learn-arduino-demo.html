@@ -1,0 +1,776 @@
+<title>Blink Bench</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  /* Layout: full-bleed orthographic 3D bench, HUD floats in the four corners.
+     Deliberately single-theme: the warm workbench is the point of the look. */
+  :root {
+    --bg: #f4eadb;
+    --panel: #fbf6ee;
+    --ink: #1c2236;
+    --muted: #8a7c6a;
+    --line: #e0d2bd;
+    --teal: #1aa3a1;
+    --teal-deep: #13807e;
+    --led: #e5483f;
+    --display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+    --body: "Barlow", system-ui, -apple-system, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    color-scheme: light;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--body);
+    overflow: hidden; -webkit-font-smoothing: antialiased;
+  }
+  #stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #stage.is-pointing { cursor: pointer; }
+
+  .hud {
+    position: fixed; inset: 0; pointer-events: none;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px));
+    display: grid; grid-template-rows: auto 1fr auto; gap: 16px;
+  }
+  .hud > * { pointer-events: auto; }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; pointer-events: none; }
+  .top > * { pointer-events: auto; }
+
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand svg { width: 44px; height: 28px; flex: none; }
+  .brand h1 {
+    margin: 0; font: 600 22px/1 var(--display); letter-spacing: .14em; text-transform: uppercase;
+  }
+  .brand p {
+    margin: 5px 0 0; font: 500 11.5px/1 var(--display); letter-spacing: .2em;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+  .status {
+    display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
+    font: 500 12.5px/1 var(--mono); color: var(--ink); white-space: nowrap;
+  }
+  .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition: background .15s, box-shadow .15s; }
+  .status.is-high .dot { background: var(--led); box-shadow: 0 0 0 3px color-mix(in srgb, var(--led) 22%, transparent); }
+  .status.is-busy .dot { background: var(--teal); animation: pulse .5s ease-in-out infinite alternate; }
+  @keyframes pulse { to { opacity: .3; } }
+  .btn {
+    height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--ink);
+    background: var(--ink); color: var(--panel); cursor: pointer;
+    font: 600 13px/1 var(--display); letter-spacing: .1em; text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 8px; transition: transform .12s, background .2s;
+  }
+  .btn:hover { background: var(--teal-deep); border-color: var(--teal-deep); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible, .card button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  .btn svg { width: 14px; height: 14px; }
+
+  .bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; pointer-events: none; }
+  .bottom > * { pointer-events: auto; }
+  .hint {
+    margin-left: auto; font: 500 12px/1.3 var(--display); letter-spacing: .14em;
+    text-transform: uppercase; color: var(--muted); text-align: right;
+  }
+
+  .card {
+    width: min(340px, 100%); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 16px 18px 18px; box-shadow: 0 10px 30px -14px rgb(60 40 20 / .35);
+    display: grid; gap: 8px; transform-origin: bottom left;
+    transition: opacity .22s ease, transform .28s cubic-bezier(.34, 1.56, .64, 1);
+  }
+  .card.is-hidden { opacity: 0; transform: translateY(10px) scale(.96); pointer-events: none; }
+  .card header { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+  .card .eyebrow { font: 600 11px/1 var(--display); letter-spacing: .18em; text-transform: uppercase; color: var(--teal-deep); }
+  .card h2 { margin: 6px 0 0; font: 700 24px/1.05 var(--display); text-wrap: balance; }
+  .card p { margin: 0; font-size: 14px; line-height: 1.5; color: color-mix(in srgb, var(--ink) 82%, var(--bg)); }
+  .card .spec {
+    font: 500 12px/1.4 var(--mono); color: var(--ink); padding-top: 10px; border-top: 1px dashed var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  .card button {
+    flex: none; width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--line);
+    background: transparent; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1;
+  }
+  .card button:hover { color: var(--ink); border-color: var(--muted); }
+
+  .tip {
+    position: fixed; left: 0; top: 0; pointer-events: none; z-index: 5;
+    background: var(--ink); color: var(--panel); border-radius: 6px; padding: 6px 9px;
+    font: 600 12.5px/1 var(--display); letter-spacing: .06em; white-space: nowrap;
+    opacity: 0; transition: opacity .12s;
+  }
+  .tip.is-on { opacity: 1; }
+  .tip small { font-weight: 500; opacity: .6; margin-left: 6px; letter-spacing: .1em; text-transform: uppercase; font-size: 10.5px; }
+
+  @media (max-width: 560px) {
+    .brand h1 { font-size: 18px; }
+    .brand p { display: none; }
+    .bottom { flex-direction: column-reverse; align-items: stretch; }
+    .hint { margin-left: 0; text-align: left; }
+    .card { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card, .tip { transition: none; }
+    .status.is-busy .dot { animation: none; }
+  }
+</style>
+
+<canvas id="stage" aria-label="3D Arduino Uno wired to an LED, resistor and push button on a breadboard"></canvas>
+
+<div class="hud">
+  <div class="top">
+    <div class="brand">
+      <svg viewBox="0 0 44 28" aria-hidden="true">
+        <g fill="none" stroke="#1c2236" stroke-width="4.2">
+          <ellipse cx="12" cy="14" rx="9.5" ry="9" />
+          <ellipse cx="32" cy="14" rx="9.5" ry="9" />
+        </g>
+        <path d="M8 14h8M28 14h8M32 10v8" stroke="#1c2236" stroke-width="2.6" stroke-linecap="round" />
+      </svg>
+      <div>
+        <h1>Learn Arduino</h1>
+        <p>Explore · Understand · Build</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="status" id="status" role="status" aria-live="polite"><span class="dot"></span><span id="statusText">Building circuit…</span></div>
+      <button class="btn" id="rebuild" type="button">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.8-4.1"/><path d="M13.5 2v3.5H10"/></svg>
+        Rebuild
+      </button>
+    </div>
+  </div>
+  <div></div>
+  <div class="bottom">
+    <article class="card is-hidden" id="card" aria-live="polite">
+      <header>
+        <div>
+          <div class="eyebrow" id="cardKind">Component</div>
+          <h2 id="cardName">Arduino Uno</h2>
+        </div>
+        <button type="button" id="cardClose" aria-label="Close">×</button>
+      </header>
+      <p id="cardDesc"></p>
+      <div class="spec" id="cardSpec"></div>
+    </article>
+    <div class="hint">Hover a part to lift it · Click to inspect</div>
+  </div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const $ = s => document.querySelector(s);
+const canvas = $('#stage');
+
+/* ---------- easing + tweens (same curves as the original) ---------- */
+const ease = {
+  linear: t => t,
+  outCubic: t => 1 - (1 - t) ** 3,
+  inCubic: t => t * t * t,
+  inOutCubic: t => (t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2),
+  outBack: t => 1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2,
+  inBack: t => 2.70158 * t * t * t - 1.70158 * t * t,
+};
+const speed = matchMedia('(prefers-reduced-motion: reduce)').matches ? .05 : 1;
+let tweens = [];
+function tween({ delay = 0, duration, easing = ease.linear, onUpdate, onComplete }) {
+  const t = { start: performance.now() + delay * speed, duration: Math.max(1, duration * speed), easing, onUpdate, onComplete, dead: false };
+  t.cancel = () => { t.dead = true; };
+  tweens.push(t);
+  return t;
+}
+function updateTweens(now) {
+  const list = tweens; tweens = [];
+  const keep = list.filter(t => {
+    if (t.dead) return false;
+    if (now < t.start) return true;
+    const p = Math.min(1, (now - t.start) / t.duration);
+    t.onUpdate?.(t.easing(p), p);
+    if (p >= 1) { t.onComplete?.(); return false; }
+    return true;
+  });
+  tweens = keep.concat(tweens);
+}
+const wait = ms => new Promise(r => setTimeout(r, ms * speed));
+
+/* ---------- renderer, scene, lights ---------- */
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.VSMShadowMap;
+renderer.shadowMap.autoUpdate = false;
+const BG = new THREE.Color('#f4eadb');
+
+const scene = new THREE.Scene();
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 900);
+const TARGET = new THREE.Vector3(-6, 4, 0);
+const AZ = -0.52, EL = 0.64;
+
+scene.add(new THREE.HemisphereLight('#fffaf3', '#c2ae90', 1.7));
+scene.add(new THREE.AmbientLight('#ffffff', .35));
+const key = new THREE.DirectionalLight('#fff6ea', 1.7);
+key.position.set(-55, 100, 62);
+scene.add(key);
+// A near-zero light whose only job is to throw the soft shadow down-left onto the ground.
+const shade = new THREE.DirectionalLight('#ffffff', .001);
+shade.position.set(64, 104, -34);
+shade.target.position.set(-6, 0, 0);
+shade.castShadow = true;
+shade.shadow.mapSize.set(2048, 2048);
+Object.assign(shade.shadow.camera, { left: -120, right: 120, top: 120, bottom: -120, near: 20, far: 300 });
+shade.shadow.radius = 11;
+shade.shadow.blurSamples = 20;
+shade.shadow.bias = -4e-4;
+scene.add(shade, shade.target);
+
+// Layer 1 = things that get no ink outline (ground, grid, ring, glow).
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.ShadowMaterial({ color: '#7a5532', opacity: .32, depthWrite: false }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; ground.layers.set(1); ground.renderOrder = -1;
+scene.add(ground);
+
+const gridMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false,
+  uniforms: { color: { value: new THREE.Color('#d9c7ae') }, cell: { value: 9 }, center: { value: new THREE.Vector2(TARGET.x, TARGET.z) }, inner: { value: 60 }, outer: { value: 140 }, strength: { value: .9 } },
+  vertexShader: `varying vec2 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.); vW = w.xz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+  fragmentShader: `uniform vec3 color; uniform float cell, inner, outer, strength; uniform vec2 center; varying vec2 vW;
+    void main(){ vec2 c = vW / cell; vec2 g = abs(fract(c - .5) - .5) / fwidth(c);
+      float line = 1. - min(min(g.x, g.y), 1.);
+      float fade = 1. - smoothstep(inner, outer, length(vW - center));
+      gl_FragColor = vec4(color, line * fade * strength); }`,
+});
+const grid = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), gridMat);
+grid.rotation.x = -Math.PI / 2; grid.position.y = -.05; grid.layers.set(1); grid.renderOrder = -2;
+scene.add(grid);
+
+/* ---------- geometry helpers ---------- */
+const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .75, metalness: 0, ...o });
+const mat = {
+  pcb: M('#2f5597', { roughness: .6 }), black: M('#22242b'), hole: M('#0d0e12'), silver: M('#c9ced6', { roughness: .4 }),
+  gold: M('#d9b65c', { roughness: .45 }), chip: M('#1b1c21', { roughness: .55 }), socket: M('#3a3d46'),
+  white: M('#f2ede2'), side: M('#e6dece'), cream: M('#e6d1ad'),
+};
+function box(w, h, d, m, x, y, z, parent) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+  mesh.position.set(x, y + h / 2, z);
+  parent.add(mesh);
+  return mesh;
+}
+function cyl(r, h, m, x, y, z, parent, seg = 24) {
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), m);
+  mesh.position.set(x, y + h / 2, z);
+  parent.add(mesh);
+  return mesh;
+}
+function canvasTex(wmm, hmm, draw) {
+  const s = 20, c = document.createElement('canvas');
+  c.width = wmm * s; c.height = hmm * s;
+  const g = c.getContext('2d');
+  g.scale(s, s);
+  draw(g);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+
+/* ---------- Arduino Uno ---------- */
+const PITCH = 2.54, PCB = 1.6, HDR = 8.5;
+const BOARD = new THREE.Vector3(-36, 2, 0);
+const hdrA = i => -18 + i * PITCH;            // SCL SDA AREF GND 13 12 11 10 9 8
+const hdrB = i => hdrA(10) + 1.27 + i * PITCH; // 7 6 5 4 3 2 1 0
+let boardLed;
+
+function buildBoard() {
+  const g = new THREE.Group();
+  const W = 68.6, D = 53.3, r = 2;
+  const sh = new THREE.Shape();
+  sh.moveTo(-W / 2 + r, -D / 2); sh.lineTo(W / 2 - r, -D / 2); sh.quadraticCurveTo(W / 2, -D / 2, W / 2, -D / 2 + r);
+  sh.lineTo(W / 2, D / 2 - r); sh.quadraticCurveTo(W / 2, D / 2, W / 2 - r, D / 2); sh.lineTo(-W / 2 + r, D / 2);
+  sh.quadraticCurveTo(-W / 2, D / 2, -W / 2, D / 2 - r); sh.lineTo(-W / 2, -D / 2 + r); sh.quadraticCurveTo(-W / 2, -D / 2, -W / 2 + r, -D / 2);
+  const pcbGeo = new THREE.ExtrudeGeometry(sh, { depth: PCB, bevelEnabled: false });
+  pcbGeo.rotateX(-Math.PI / 2);
+  g.add(new THREE.Mesh(pcbGeo, mat.pcb));
+
+  // silkscreen
+  const silk = canvasTex(W, D, c => {
+    c.translate(W / 2, D / 2);
+    c.fillStyle = c.strokeStyle = '#eef3fb';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = '600 2.1px Barlow, sans-serif';
+    c.fillText('DIGITAL (PWM~)', 10, -19);
+    c.fillText('POWER', -11, 19.6); c.fillText('ANALOG IN', 8.4, 19.6);
+    c.font = '500 1.15px Barlow, sans-serif';
+    ['SCL', 'SDA', 'AREF', 'GND', '13', '12', '~11', '~10', '~9', '8'].forEach((t, i) => c.fillText(t, hdrA(i), -21.6));
+    ['7', '~6', '~5', '4', '~3', '2', 'TX 1', 'RX 0'].forEach((t, i) => c.fillText(t, hdrB(i), -21.6));
+    ['', 'IOREF', 'RESET', '3.3V', '5V', 'GND', 'GND', 'VIN'].forEach((t, i) => c.fillText(t, -20 + i * PITCH, 21.8));
+    ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'].forEach((t, i) => c.fillText(t, 2 + i * PITCH, 21.8));
+    c.fillText('L', -16.3, -17.3); c.fillText('TX', -16.3, -14.8); c.fillText('RX', -16.3, -12.3); c.fillText('ON', 27.4, -11);
+    // logo
+    c.lineWidth = .85;
+    c.beginPath(); c.ellipse(-6.2, -7.5, 3.2, 2.9, 0, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.ellipse(.6, -7.5, 3.2, 2.9, 0, 0, Math.PI * 2); c.stroke();
+    c.lineWidth = .55;
+    c.beginPath(); c.moveTo(-7.6, -7.5); c.lineTo(-4.8, -7.5); c.moveTo(-.8, -7.5); c.lineTo(2, -7.5); c.moveTo(.6, -8.9); c.lineTo(.6, -6.1); c.stroke();
+    c.font = '700 2.6px "Barlow Semi Condensed", sans-serif';
+    c.fillText('ARDUINO', -2.8, -2.4);
+    c.lineWidth = .4;
+    c.beginPath(); c.roundRect(5.6, -10, 9.4, 5, 2.5); c.stroke();
+    c.font = '700 3px "Barlow Semi Condensed", sans-serif';
+    c.fillText('UNO', 10.3, -7.4);
+    c.lineWidth = .25; c.globalAlpha = .55;
+    c.strokeRect(-12.6, 4.2, 41.2, 11.6);
+  });
+  const silkPlane = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshStandardMaterial({ map: silk, transparent: true, roughness: .6, depthWrite: false }));
+  silkPlane.rotation.x = -Math.PI / 2; silkPlane.position.y = PCB + .01;
+  g.add(silkPlane);
+
+  // mounting holes
+  for (const [x, z] of [[-31.5, -23.5], [31.5, -21], [31.5, 20], [-31.5, 23.5]]) cyl(1.7, .08, mat.silver, x, PCB, z, g);
+
+  // USB-B and DC jack hanging off the left edge
+  box(16, 11, 12, mat.silver, -32.3, PCB, -12, g);
+  box(.2, 6, 7.5, mat.hole, -40.35, PCB + 2.5, -12, g);
+  box(14, 11, 9, mat.black, -29.8, PCB, 15.5, g);
+  const jack = cyl(2.6, .2, mat.hole, -36.9, PCB + 5.5 - .1, 15.5, g);
+  jack.rotation.z = Math.PI / 2; jack.position.set(-36.85, PCB + 5.5, 15.5);
+
+  // female headers
+  const header = (n, x0, z) => {
+    box(n * PITCH, HDR, PITCH, mat.black, x0 + (n - 1) * PITCH / 2, PCB, z, g);
+    for (let i = 0; i < n; i++) box(1, .1, 1, mat.hole, x0 + i * PITCH, PCB + HDR - .04, z, g);
+  };
+  header(10, hdrA(0), -24.2);
+  header(8, hdrB(0), -24.2);
+  header(8, -20, 24.2);
+  header(6, 2, 24.2);
+
+  // ATmega328P in its socket
+  box(36, 1.8, 8.6, mat.socket, 8, PCB, 10, g);
+  box(35, 3.2, 7.2, mat.chip, 8, PCB + 1.3, 10, g);
+  cyl(.9, .08, mat.socket, -8, PCB + 4.5, 10, g);
+  for (let i = 0; i < 14; i++) for (const s of [-1, 1]) box(.6, 2.4, .9, mat.silver, 8 - 16.51 + i * PITCH, PCB + 1, 10 + s * 4.05, g);
+
+  // crystal, caps, regulator, reset, ICSP
+  const xtal = cyl(2.2, 3.4, mat.silver, -19, PCB, 1, g); xtal.scale.x = 2.3;
+  cyl(3.1, 6.5, mat.silver, -23.5, PCB, 4.5, g);
+  cyl(3.1, 6.5, mat.silver, -16.6, PCB, 4.5, g);
+  for (const x of [-23.5, -16.6]) cyl(3.15, .5, M('#2a2f3b'), x, PCB + 6.3, 4.5, g);
+  box(6.5, 2.4, 5.5, mat.black, -21, PCB, 18, g);
+  box(6, 3, 6, mat.silver, -26, PCB, -21.5, g);
+  cyl(1.7, 1.4, M('#d8423a'), -26, PCB + 3, -21.5, g);
+  box(5.2, 2.5, 7.8, mat.black, 29.5, PCB, 4, g);
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 3; j++) box(.64, 6, .64, mat.gold, 29.5 - 1.27 + i * PITCH, PCB + 2.5, 4 - PITCH + j * PITCH, g);
+
+  // tiny SMD LEDs: L (wired to pin 13), TX, RX, ON
+  boardLed = new THREE.MeshStandardMaterial({ color: '#f2c94c', emissive: '#ffb020', emissiveIntensity: 0, roughness: .4 });
+  box(1.6, .8, 1, boardLed, -13.8, PCB, -17.3, g);
+  box(1.6, .8, 1, M('#f2c94c'), -13.8, PCB, -14.8, g);
+  box(1.6, .8, 1, M('#f2c94c'), -13.8, PCB, -12.3, g);
+  box(1.6, .8, 1, new THREE.MeshStandardMaterial({ color: '#9fe08a', emissive: '#4cd137', emissiveIntensity: .9 }), 24.6, PCB, -11, g);
+  return g;
+}
+
+/* ---------- breadboard ---------- */
+const BB = new THREE.Vector3(36, 0, 2), BBH = 9;
+const ROWS = { a: -12.7, b: -10.16, c: -7.62, d: -5.08, e: -2.54, f: 2.54, g: 5.08, h: 7.62, i: 10.16, j: 12.7 };
+const RAILS = [-18.3, -15.76, 15.76, 18.3];
+const colX = i => (i - 9.5) * PITCH;
+const hole = (col, row) => new THREE.Vector3(BB.x + colX(col), BBH, BB.z + ROWS[row]);
+
+function buildBreadboard() {
+  const g = new THREE.Group();
+  const W = 56, D = 44;
+  const top = canvasTex(W, D, c => {
+    c.fillStyle = '#f2ede2'; c.fillRect(0, 0, W, D);
+    c.translate(W / 2, D / 2);
+    c.fillStyle = '#e2d9c7'; c.fillRect(-W / 2, -1.1, W, 2.2);
+    c.lineWidth = .3;
+    c.strokeStyle = '#3b6fb6'; c.beginPath(); c.moveTo(-25, -20.2); c.lineTo(25, -20.2); c.moveTo(-25, 13.8); c.lineTo(25, 13.8); c.stroke();
+    c.strokeStyle = '#d9534f'; c.beginPath(); c.moveTo(-25, -13.8); c.lineTo(25, -13.8); c.moveTo(-25, 20.2); c.lineTo(25, 20.2); c.stroke();
+    c.fillStyle = '#4c453c';
+    for (let i = 0; i < 20; i++) {
+      for (const z of Object.values(ROWS)) c.fillRect(colX(i) - .5, z - .5, 1, 1);
+      if (i % 5 !== 4) for (const z of RAILS) c.fillRect(colX(i) - .5, z - .5, 1, 1);
+    }
+    c.fillStyle = '#a89a86'; c.font = '600 1.3px Barlow, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    for (const [k, z] of Object.entries(ROWS)) c.fillText(k, -26.6, z);
+    for (let i = 0; i < 20; i += 5) c.fillText(String(i + 1), colX(i), -11.5 + -2.6);
+  });
+  const sides = mat.side, topMat = new THREE.MeshStandardMaterial({ map: top, roughness: .8 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(W, BBH, D), [sides, sides, topMat, sides, sides, sides]);
+  body.position.y = BBH / 2;
+  g.add(body);
+  return g;
+}
+
+/* ---------- LED, resistor, button ---------- */
+const ledMat = new THREE.MeshStandardMaterial({ color: '#e5483f', emissive: '#ff3b2a', emissiveIntensity: 0, roughness: .3 });
+const glowTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), grd = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grd.addColorStop(0, 'rgba(255,90,60,.9)'); grd.addColorStop(.35, 'rgba(255,70,50,.35)'); grd.addColorStop(1, 'rgba(255,60,40,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+})();
+const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
+glow.scale.setScalar(22); glow.layers.set(1);
+const ledLight = new THREE.PointLight('#ff4a30', 0, 45, 2);
+
+function buildLed() {
+  const g = new THREE.Group();
+  for (const [x, h] of [[-1.27, 4.3], [1.27, 4.6]]) cyl(.25, h, mat.silver, x, 0, 0, g, 8);
+  cyl(2.9, 1, ledMat, 0, 4, 0, g);
+  cyl(2.5, 4.5, ledMat, 0, 5, 0, g);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(2.5, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), ledMat);
+  dome.position.y = 9.5; g.add(dome);
+  glow.position.set(0, 8, 0); ledLight.position.set(0, 8, 0);
+  g.add(glow, ledLight);
+  return g;
+}
+
+function buildResistor() {
+  const g = new THREE.Group(), half = 6.35, y = 3.5;
+  for (const s of [-1, 1]) {
+    const arm = cyl(.25, half - 3, mat.silver, 0, 0, 0, g, 8);
+    arm.rotation.z = Math.PI / 2; arm.position.set(s * (3 + (half - 3) / 2), y, 0);
+    cyl(.25, y, mat.silver, s * half, 0, 0, g, 8);
+  }
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.2, 4.2, 6, 16), mat.cream);
+  body.rotation.z = Math.PI / 2; body.position.y = y; g.add(body);
+  [['#d33b30', -2], ['#d33b30', -.9], ['#7a4a26', .2], ['#c9a248', 1.9]].forEach(([c, x]) => {
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(1.26, 1.26, .55, 16), M(c));
+    b.rotation.z = Math.PI / 2; b.position.set(x, y, 0); g.add(b);
+  });
+  return g;
+}
+
+function buildButton() {
+  const g = new THREE.Group();
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(.7, 1, .5, mat.silver, sx * 2.6, 0, sz * 3.2, g);
+  box(6, 3.2, 6, mat.black, 0, .4, 0, g);
+  box(6.2, .4, 6.2, mat.silver, 0, 3.6, 0, g);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) cyl(.45, .3, mat.black, sx * 2.2, 4, sz * 2.2, g, 12);
+  cyl(1.8, 1.7, M('#f2c14e', { roughness: .5 }), 0, 4, 0, g);
+  return g;
+}
+
+/* ---------- jumper wires ---------- */
+const TUBE_SEG = 96, TUBE_RAD = 8, PER_SEG = TUBE_RAD * 6;
+function buildWire(from, to, color) {
+  const g = new THREE.Group(), m = M(color, { roughness: .55 }), housing = 9;
+  const a = from.clone().setY(from.y + housing), d = to.clone().setY(to.y + housing);
+  const span = from.distanceTo(to);
+  const mid = from.clone().lerp(to, .5).setY(Math.max(a.y, d.y) + 10 + span * .12);
+  const curve = new THREE.CatmullRomCurve3([a, a.clone().setY(a.y + 7), mid, d.clone().setY(d.y + 7), d], false, 'centripetal');
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, TUBE_SEG, .75, TUBE_RAD, false), m);
+  g.add(tube);
+  const ends = [from, to].map(p => {
+    const e = new THREE.Group(); e.position.copy(p);
+    box(2.5, housing, 2.5, mat.black, 0, 0, 0, e);
+    box(2.6, .8, 2.6, m, 0, housing - .8, 0, e);
+    g.add(e); return e;
+  });
+  return { group: g, tube, ends, count: tube.geometry.index.count, material: m };
+}
+
+/* ---------- the parts list ---------- */
+const boardPin = (x, z = -24.2) => new THREE.Vector3(BOARD.x + x, BOARD.y + PCB + HDR, BOARD.z + z);
+const INFO = {
+  board: { kind: 'Microcontroller board', name: 'Arduino Uno', desc: 'The brain of the circuit. Its ATmega328P chip runs your sketch and switches the pins along the edges on and off.', spec: '14 digital pins · 6 analog in · 16 MHz' },
+  breadboard: { kind: 'Prototyping', name: 'Breadboard', desc: 'Lets you build a circuit without soldering. The five holes in each half-column share one metal strip underneath.', spec: 'Hole pitch 2.54 mm (0.1 in)' },
+  led: { kind: 'Output', name: 'Red LED', desc: 'Lights up when current flows from the long leg (anode) to the short leg (cathode). Pin 13 switches it.', spec: '≈ 2.0 V forward · 20 mA max' },
+  resistor: { kind: 'Passive', name: '220 Ω resistor', desc: 'Limits the current so the LED doesn’t burn out. Read the bands left to right: red, red, brown, gold.', spec: '22 × 10¹ Ω · ±5% tolerance' },
+  button: { kind: 'Input', name: 'Push button', desc: 'Closes the circuit while pressed. With INPUT_PULLUP, pin 2 reads LOW while you hold it down.', spec: '6 × 6 mm tactile switch' },
+  w13: { kind: 'Jumper wire', name: 'Pin 13 → LED', desc: 'Carries the blink signal from digital pin 13 to the LED’s anode column.', spec: 'digitalWrite(13, HIGH) → 5 V' },
+  wgnd: { kind: 'Jumper wire', name: 'GND → resistor', desc: 'Completes the loop. Current leaves the LED, passes the resistor and returns to ground.', spec: '0 V reference' },
+  w2: { kind: 'Jumper wire', name: 'Pin 2 → button', desc: 'Lets the board read the button. digitalRead(2) returns HIGH or LOW.', spec: 'pinMode(2, INPUT_PULLUP)' },
+};
+
+const parts = [];
+function addPart(id, group, at, { drop = 46, lift = 1.6, seat = 0 } = {}) {
+  group.position.copy(at);
+  Object.assign(group.userData, { part: id, baseY: at.y, dropY: 0, hoverY: 0 });
+  group.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  scene.add(group);
+  const p = { id, kind: 'part', group, drop, lift, seat, anims: [] };
+  parts.push(p); return p;
+}
+function addWire(id, from, to, color) {
+  const w = buildWire(from, to, color);
+  w.group.userData.part = id;
+  w.group.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  scene.add(w.group);
+  const p = { id, kind: 'wire', ...w, anims: [] };
+  parts.push(p); return p;
+}
+
+addPart('board', buildBoard(), BOARD, { drop: 24, lift: 0 });
+addPart('breadboard', buildBreadboard(), BB, { drop: 24, lift: 0 });
+addPart('led', buildLed(), hole(6, 'c').add(hole(7, 'c')).multiplyScalar(.5), { seat: BBH });
+addPart('resistor', buildResistor(), hole(1, 'a').add(hole(6, 'a')).multiplyScalar(.5), { seat: BBH });
+addPart('button', buildButton(), new THREE.Vector3(BB.x + colX(14), BBH, BB.z), { seat: BBH });
+addWire('w13', boardPin(hdrA(4)), hole(7, 'e'), '#f08a24');
+addWire('wgnd', boardPin(hdrA(3)), hole(1, 'b'), '#2b2f3a');
+addWire('w2', boardPin(hdrB(5)), hole(13, 'h'), '#3fae5a');
+
+/* ---------- enter / exit animations ---------- */
+const applyY = g => { const u = g.userData; g.position.y = u.baseY + u.dropY + u.hoverY; };
+const clearAnims = p => { p.anims.forEach(a => a.cancel()); p.anims = []; };
+
+function enter(p, delay) {
+  clearAnims(p);
+  if (p.kind === 'wire') {
+    const { tube, ends, count } = p;
+    tube.geometry.setDrawRange(0, 0);
+    ends.forEach(e => e.scale.setScalar(.001));
+    p.anims.push(
+      tween({ delay, duration: 260, easing: ease.outBack, onUpdate: t => ends[0].scale.setScalar(Math.max(.001, t)) }),
+      tween({ delay: delay + 120, duration: 620, easing: ease.inOutCubic, onUpdate: t => tube.geometry.setDrawRange(0, Math.ceil(t * count / PER_SEG) * PER_SEG) }),
+      tween({ delay: delay + 700, duration: 260, easing: ease.outBack, onUpdate: t => ends[1].scale.setScalar(Math.max(.001, t)) }),
+    );
+    return;
+  }
+  const g = p.group, o = p.drop;
+  g.userData.dropY = o; g.scale.setScalar(.001); applyY(g);
+  p.anims.push(tween({
+    delay, duration: 720,
+    onUpdate: t => {
+      g.userData.dropY = o * (1 - ease.outCubic(t));
+      g.scale.setScalar(Math.max(.001, ease.outBack(Math.min(1, t * 1.15))));
+      applyY(g);
+    },
+  }));
+}
+
+function exit(p) {
+  clearAnims(p);
+  if (p.kind === 'wire') {
+    const { tube, ends, count } = p, from = tube.geometry.drawRange.count;
+    p.anims.push(tween({ duration: 380, easing: ease.inCubic, onUpdate: t => {
+      tube.geometry.setDrawRange(0, Math.floor((1 - t) * Math.min(from, count) / PER_SEG) * PER_SEG);
+      ends.forEach(e => e.scale.setScalar(Math.max(.001, 1 - t)));
+    } }));
+    return;
+  }
+  const g = p.group, s = g.scale.x;
+  p.anims.push(tween({ delay: 60, duration: 420, onUpdate: t => {
+    g.scale.setScalar(Math.max(.001, s * (1 - ease.inBack(t))));
+    g.userData.dropY = 30 * t * t; applyY(g);
+  } }));
+}
+
+/* ---------- blink sketch ---------- */
+const statusEl = $('#status'), statusText = $('#statusText');
+let sim = null, flicker = false, ledOn = false, ledAnim = null;
+function setStatus(text, cls = '') {
+  statusText.textContent = text;
+  statusEl.className = 'status' + (cls ? ' ' + cls : '');
+}
+function setLed(on) {
+  if (on === ledOn) return;
+  ledOn = on;
+  ledAnim?.cancel();
+  const from = ledMat.emissiveIntensity / 1.6, to = on ? 1 : 0;
+  ledAnim = tween({ duration: on ? 70 : 140, easing: ease.outCubic, onUpdate: t => {
+    const k = from + (to - from) * t;
+    ledMat.emissiveIntensity = 1.6 * k; glow.material.opacity = k; ledLight.intensity = 900 * k; boardLed.emissiveIntensity = 1.4 * k;
+  } });
+}
+function stopSim() { sim = null; flicker = false; setLed(false); boardLed.emissiveIntensity = 0; }
+
+let runToken = 0, built = false;
+async function build() {
+  const token = ++runToken;
+  stopSim(); select(null); setHovered(null);
+  setStatus('Building circuit…', 'is-busy');
+  if (built) {
+    parts.forEach(exit);
+    await wait(560);
+    if (token !== runToken) return;
+  }
+  let i = 0, w = 0;
+  for (const p of parts) enter(p, p.kind === 'wire' ? 1100 + w++ * 160 : i++ * 170);
+  built = true;
+  await wait(1100 + 2 * 160 + 1000);
+  if (token !== runToken) return;
+  setStatus('Uploading to Arduino Uno…', 'is-busy');
+  flicker = true;
+  await wait(1200);
+  if (token !== runToken) return;
+  flicker = false; boardLed.emissiveIntensity = 0;
+  sim = { start: performance.now() };
+}
+function updateSim(now) {
+  if (flicker) boardLed.emissiveIntensity = Math.random() < .5 ? 1.4 : 0;
+  if (!sim) return;
+  const high = Math.floor((now - sim.start) / 1000) % 2 === 0;
+  if (high !== ledOn || !sim.shown) {
+    sim.shown = true;
+    setLed(high);
+    setStatus(`digitalWrite(13, ${high ? 'HIGH' : 'LOW'})`, high ? 'is-high' : '');
+  }
+}
+
+/* ---------- hover + select ---------- */
+const raycaster = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const byId = id => parts.find(p => p.id === id);
+function pick(x, y) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set((x - r.left) / r.width * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  for (const h of raycaster.intersectObjects(parts.map(p => p.group), true)) {
+    let o = h.object;
+    while (o && !o.userData.part) o = o.parent;
+    if (o) return byId(o.userData.part);
+  }
+  return null;
+}
+
+const tip = $('#tip');
+let hovered = null, pointer = null, pointerDirty = false;
+function setHovered(p) {
+  if (hovered === p) return;
+  const lift = (q, to) => {
+    if (!q || q.kind === 'wire' || !q.lift) return;
+    const g = q.group, from = g.userData.hoverY;
+    g.userData.hoverAnim?.cancel();
+    g.userData.hoverAnim = tween({ duration: 220, easing: ease.outCubic, onUpdate: t => { g.userData.hoverY = from + (to - from) * t; applyY(g); } });
+  };
+  lift(hovered, 0);
+  hovered = p;
+  lift(p, p?.lift ?? 0);
+  canvas.classList.toggle('is-pointing', !!p);
+  if (p) tip.innerHTML = `${INFO[p.id].name}<small>${INFO[p.id].kind}</small>`;
+  tip.classList.toggle('is-on', !!p);
+  setWireTint();
+}
+
+const ring = new THREE.Group();
+const ringMat = new THREE.MeshBasicMaterial({ color: '#1aa3a1', transparent: true, opacity: .85, depthWrite: false });
+const ringMat2 = ringMat.clone(); ringMat2.opacity = .45;
+for (const m of [new THREE.Mesh(new THREE.RingGeometry(.93, 1, 72), ringMat), new THREE.Mesh(new THREE.RingGeometry(.8, .84, 72), ringMat2)]) {
+  m.rotation.x = -Math.PI / 2; m.layers.set(1); ring.add(m);
+}
+ring.visible = false; ring.renderOrder = -1;
+scene.add(ring);
+
+const card = $('#card');
+let selected = null, ringAnim = null;
+function select(p) {
+  selected = p;
+  setWireTint();
+  ringAnim?.cancel();
+  if (!p) { ring.visible = false; card.classList.add('is-hidden'); return; }
+  const info = INFO[p.id];
+  $('#cardKind').textContent = info.kind; $('#cardName').textContent = info.name;
+  $('#cardDesc').textContent = info.desc; $('#cardSpec').textContent = info.spec;
+  card.classList.remove('is-hidden');
+  if (p.kind === 'wire') { ring.visible = false; return; }
+  const g = p.group, saved = g.userData.hoverY;
+  g.userData.hoverY = 0; applyY(g); g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(g);
+  g.userData.hoverY = saved; applyY(g);
+  const c = b.getCenter(new THREE.Vector3()), s = b.getSize(new THREE.Vector3());
+  const radius = Math.max(8, Math.hypot(s.x, s.z) / 2 + 3);
+  ring.position.set(c.x, p.seat + .25, c.z);
+  ring.visible = true;
+  ringAnim = tween({ duration: 420, easing: ease.outBack, onUpdate: t => ring.scale.setScalar(radius * (.6 + .4 * t)) });
+  ringMat.opacity = .85; ringMat2.opacity = .45;
+}
+function setWireTint() {
+  for (const p of parts) if (p.kind === 'wire') {
+    const on = p === selected || p === hovered;
+    p.material.emissive.set(on ? '#1aa3a1' : '#000000'); p.material.emissiveIntensity = on ? .45 : 0;
+  }
+}
+
+canvas.addEventListener('pointermove', e => { pointer = { x: e.clientX, y: e.clientY }; pointerDirty = true; tip.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 16}px)`; });
+canvas.addEventListener('pointerleave', () => { pointer = null; setHovered(null); });
+let down = null;
+canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return;
+  const p = pick(e.clientX, e.clientY);
+  select(p && p === selected ? null : p);
+  if (e.pointerType !== 'mouse') setHovered(p);
+});
+$('#cardClose').addEventListener('click', () => select(null));
+$('#rebuild').addEventListener('click', build);
+addEventListener('keydown', e => { if (e.key === 'Escape') select(null); });
+
+/* ---------- ink-outline post pass ---------- */
+const rtColor = new THREE.WebGLRenderTarget(1, 1, { samples: 4, type: THREE.HalfFloatType });
+const rtNormal = new THREE.WebGLRenderTarget(1, 1);
+rtNormal.depthTexture = new THREE.DepthTexture(1, 1);
+const normalMat = new THREE.MeshNormalMaterial();
+const post = new THREE.ShaderMaterial({
+  uniforms: { tColor: { value: rtColor.texture }, tNormal: { value: rtNormal.texture }, tDepth: { value: rtNormal.depthTexture },
+    texel: { value: new THREE.Vector2() }, thick: { value: 1.3 }, lineColor: { value: new THREE.Color('#141a2c') } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }`,
+  fragmentShader: `uniform sampler2D tColor, tNormal, tDepth; uniform vec2 texel; uniform float thick; uniform vec3 lineColor; varying vec2 vUv;
+    void main(){
+      vec2 ox = vec2(texel.x * thick, 0.), oy = vec2(0., texel.y * thick);
+      vec4 c = texture2D(tColor, vUv);
+      vec4 nl = texture2D(tNormal, vUv - ox), nr = texture2D(tNormal, vUv + ox), nu = texture2D(tNormal, vUv + oy), nd = texture2D(tNormal, vUv - oy);
+      float dc = texture2D(tDepth, vUv).x, dl = texture2D(tDepth, vUv - ox).x, dr = texture2D(tDepth, vUv + ox).x, du = texture2D(tDepth, vUv + oy).x, dd = texture2D(tDepth, vUv - oy).x;
+      float nE = max(length(nl - nr), length(nu - nd));
+      float dE = max(abs(dl + dr - 2. * dc), abs(du + dd - 2. * dc));
+      float e = max(smoothstep(.3, .65, nE), smoothstep(.0012, .0026, dE));
+      gl_FragColor = vec4(mix(c.rgb, lineColor, e * .94), 1.);
+      #include <colorspace_fragment>
+    }`,
+  depthTest: false, depthWrite: false,
+});
+const postScene = new THREE.Scene(), postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), post));
+
+/* ---------- camera + resize ---------- */
+function resize() {
+  const w = innerWidth, h = innerHeight, dpr = Math.min(2, devicePixelRatio || 1);
+  renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
+  rtColor.setSize(w * dpr, h * dpr); rtNormal.setSize(w * dpr, h * dpr);
+  post.uniforms.texel.value.set(1 / (w * dpr), 1 / (h * dpr));
+  post.uniforms.thick.value = 1.3 * dpr;
+  const narrow = w < 560;
+  const ppm = Math.min(w / (narrow ? 128 : 160), h / 118);
+  const cx = w / 2, cy = h * (narrow ? .44 : .52);
+  Object.assign(camera, { left: -cx / ppm, right: (w - cx) / ppm, top: cy / ppm, bottom: -(h - cy) / ppm });
+  camera.position.set(TARGET.x + Math.sin(AZ) * Math.cos(EL) * 320, TARGET.y + Math.sin(EL) * 320, TARGET.z + Math.cos(AZ) * Math.cos(EL) * 320);
+  camera.lookAt(TARGET);
+  camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+  gridMat.uniforms.inner.value = .3 * w / ppm; gridMat.uniforms.outer.value = .62 * w / ppm;
+}
+addEventListener('resize', resize);
+resize();
+
+function render(now) {
+  requestAnimationFrame(render);
+  updateTweens(now);
+  updateSim(now);
+  if (pointer && pointerDirty) { pointerDirty = false; setHovered(pick(pointer.x, pointer.y)); }
+
+  renderer.shadowMap.needsUpdate = true;
+  camera.layers.enableAll();
+  renderer.setClearColor(BG, 1);
+  renderer.setRenderTarget(rtColor); renderer.render(scene, camera);
+
+  camera.layers.set(0);
+  scene.overrideMaterial = normalMat;
+  renderer.setClearColor(0x000000, 0);
+  renderer.setRenderTarget(rtNormal); renderer.render(scene, camera);
+  scene.overrideMaterial = null;
+
+  renderer.setRenderTarget(null); renderer.render(postScene, postCam);
+}
+requestAnimationFrame(render);
+document.fonts.ready.finally(build);
+</script>
