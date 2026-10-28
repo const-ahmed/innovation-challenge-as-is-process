@@ -127,3 +127,20 @@ export async function deliver(ctx, { fresh }) {
   });
   await ctx.do(w.her.walkTo(UK.meet[0], UK.meet[1], { face: -1.75 }));
 }
+
+// How deliver() leaves things, posed instantly (the storyboard's picture of a delivery scene).
+export function delivered(ctx, { fresh, orange, pose, expression }) {
+  const { world: w, stage } = ctx;
+  w.office.setLid(1);
+  w.container.setDoors(1);
+  w.delivered.setFreshness(fresh);
+  w.delivered.root.position.set(UK.crateOut[0], QUAY_Y, UK.crateOut[1]);
+  w.delivered.root.rotation.set(0, Math.PI / 2, 0);
+  w.delivered.root.visible = true;
+  w.her.placeAt(UK.meet[0], 0, UK.meet[1], -1.75);
+  w.her.pose(pose, { duration: 0 });
+  w.her.setExpression(expression, 0);
+  w.orange.userData.mat.color.set(orange);
+  w.orange.visible = true;
+  stage.jumpCamera({ ...CAM.delivery, span: 7, target: [UK.meet[0] - .6, 1.4, UK.meet[1]] });
+}

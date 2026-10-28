@@ -252,6 +252,57 @@
   .decl__cursor.is-on { opacity: 1; }
   .decl__cursor.is-click { scale: .8; }
 
+  /* ---------- storyboard ---------- */
+  .board {
+    position: fixed; inset: 0; z-index: 31; overflow: auto; overscroll-behavior: contain;
+    background: color-mix(in srgb, var(--bg) 96%, transparent); backdrop-filter: blur(6px);
+    opacity: 0; transition: opacity .25s ease;
+  }
+  .board.is-in { opacity: 1; }
+  .has-board .top, .has-board .stage-bottom { opacity: 0; pointer-events: none; }
+  .has-board .top > * { pointer-events: none; }
+  .board__inner {
+    max-width: 1320px; margin: 0 auto; display: grid; gap: 26px;
+    padding: max(20px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px));
+  }
+  .board__head { display: flex; justify-content: space-between; align-items: start; gap: 16px; position: sticky; top: 0; z-index: 1; padding: 8px 0 12px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .board__eyebrow { font: 600 11px/1 var(--display); letter-spacing: .18em; text-transform: uppercase; color: var(--teal-deep); }
+  .board h2 { margin: 5px 0 0; font: 700 28px/1.05 var(--display); }
+  .board__head p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+  .board__body { display: grid; gap: 28px; }
+  .lane { display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .lane__title { margin: 0; display: flex; align-items: center; gap: 9px; font: 700 18px/1 var(--display); letter-spacing: .04em; }
+  .lane__title b { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: var(--panel); font-size: 13px; }
+  .lane[data-chapter="a"] .lane__title b { background: var(--red); }
+  .lane[data-chapter="b"] .lane__title b { background: var(--teal); }
+  .lane__cards { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .fork { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; padding-top: 18px; border-top: 2px dashed var(--line); }
+  .fork__note { grid-column: 1 / -1; margin: 0; font: 600 12px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .fork .lane { padding: 14px; border-radius: 14px; }
+  .fork .lane[data-chapter="a"] { background: color-mix(in srgb, #e2e0dc 70%, transparent); }
+  .fork .lane[data-chapter="b"] { background: color-mix(in srgb, var(--teal) 9%, transparent); }
+  .fork .lane__cards { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+  .scene { position: relative; display: grid; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; transition: border-color .2s, box-shadow .2s, transform .2s; }
+  .scene:hover { border-color: var(--muted); box-shadow: 0 12px 26px -16px rgb(30 20 10 / .5); transform: translateY(-2px); }
+  .scene.is-now { border: 2px solid var(--ink); }
+  .scene__play { all: unset; cursor: pointer; display: grid; align-content: start; gap: 3px; padding-bottom: 40px; }
+  .scene__play:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; border-radius: 12px; }
+  .scene__thumb { position: relative; display: block; aspect-ratio: 16 / 10; margin-bottom: 7px; background: linear-gradient(100deg, var(--line) 30%, var(--panel) 50%, var(--line) 70%) 0 0 / 300% 100%; animation: shimmer 1.4s linear infinite; }
+  .scene__thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .scene__now { display: none; position: absolute; left: 8px; top: 8px; padding: 4px 7px; border-radius: 5px; background: var(--ink); color: var(--panel); font: 600 10.5px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; }
+  .scene.is-now .scene__now { display: block; }
+  .scene__no { padding: 0 12px; font: 600 10.5px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .scene__title { padding: 0 12px; font: 700 16px/1.15 var(--display); }
+  .scene__cap { padding: 2px 12px 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+  .scene__fb {
+    position: absolute; left: 12px; bottom: 10px; display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 6px;
+    border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; font: 600 12px/1 var(--display); letter-spacing: .04em;
+  }
+  .scene__fb svg { width: 12px; height: 12px; }
+  .scene__fb:hover { color: var(--ink); border-color: var(--muted); }
+  .scene__fb:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  @keyframes shimmer { to { background-position: -150% 0; } }
+
   /* ---------- feedback panel ---------- */
   .feedback {
     position: fixed; z-index: 32; right: max(16px, env(safe-area-inset-right, 0px)); top: calc(max(14px, env(safe-area-inset-top, 0px)) + 56px);
@@ -394,6 +445,9 @@
     #captionText { font-size: 15px; }
     #branch { grid-template-columns: 1fr; }
     #hold, #sea { top: 118px; width: 180px; }
+    .fork { grid-template-columns: 1fr; }
+    .board h2 { font-size: 22px; }
+    .lane__cards, .fork .lane__cards { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
     #holdDay { font-size: 26px; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -415,6 +469,10 @@
   </div>
   <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
   <div class="controls">
+    <button class="btn btn--ghost" id="boardBtn" type="button" aria-haspopup="dialog">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2.5" width="5" height="4.5" rx="1"/><rect x="9" y="2.5" width="5" height="4.5" rx="1"/><rect x="2" y="9" width="5" height="4.5" rx="1"/><rect x="9" y="9" width="5" height="4.5" rx="1"/></svg>
+      <span>Storyboard</span>
+    </button>
     <button class="btn btn--ghost" id="feedbackBtn" type="button" data-feedback>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></svg>
       <span>Feedback</span>
@@ -481,6 +539,20 @@
 <div id="rewind" hidden><div><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.8-4.1"/><path d="M2.5 2v3.5H6"/></svg><span id="rewindText"></span></div></div>
 
 <section id="end" hidden aria-live="polite"></section>
+
+<aside class="board" id="board" hidden role="dialog" aria-modal="true" aria-labelledby="boardTitle">
+  <div class="board__inner">
+    <header class="board__head">
+      <div>
+        <div class="board__eyebrow">Storyboard</div>
+        <h2 id="boardTitle">Every scene at a glance</h2>
+        <p>Pick a scene to play from there, or leave feedback on any one of them.</p>
+      </div>
+      <button type="button" class="feedback__close" id="boardClose" aria-label="Close storyboard">×</button>
+    </header>
+    <div class="board__body" id="boardBody"></div>
+  </div>
+</aside>
 
 <aside class="feedback" id="feedback" hidden role="dialog" aria-modal="false" aria-labelledby="fbTitle">
   <header class="feedback__head">

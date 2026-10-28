@@ -4,6 +4,7 @@ import { buildWorld } from './story/world.js';
 import { Overlay } from './ui/overlay.js';
 import { Declaration } from './ui/declaration.js';
 import { Feedback } from './ui/feedback.js';
+import { Storyboard } from './ui/storyboard.js';
 import { Director } from './story/director.js';
 import { CHAPTERS } from './story/script.js';
 import { CAM } from './story/cameras.js';
@@ -50,10 +51,15 @@ director.onChange(({ chapter, beat, count, label }) => {
   nextBtn.disabled = !director.canNext();
 });
 
-const feedback = new Feedback({ director, chapters: CHAPTERS, pause: { get: () => stage.clock.paused, set: setPaused } });
+const pause = { get: () => stage.clock.paused, set: setPaused };
+const feedback = new Feedback({ director, chapters: CHAPTERS, pause });
+const board = new Storyboard({
+  director, stage, form, feedback, pause, chapters: CHAPTERS,
+  onPick: (id, beat) => { setPaused(false); director.play(id, { beat }); },
+});
 
 addEventListener('keydown', e => {
-  if (feedback.isOpen || e.target.closest('input, textarea, select')) return;
+  if (feedback.isOpen || board.isOpen || e.target.closest('input, textarea, select')) return;
   if (e.code === 'Space' && !e.target.closest('button')) { e.preventDefault(); setPaused(!stage.clock.paused); }
   if (e.key === 'ArrowRight' && director.canNext()) step(1);
   if (e.key === 'ArrowLeft' && director.canPrev()) step(-1);
@@ -63,7 +69,7 @@ addEventListener('keydown', e => {
 const [where, skip] = location.hash.slice(1).split('~');
 const [first, sceneNo] = where.split('.');
 if (skip) {
-  window.__story = { stage, director, world, ui, form, CAM };
+  window.__story = { stage, director, world, ui, form, CAM, board };
   stage.clock.rate = 30;
   const stop = stage.onTick(() => { if (stage.clock.now > skip * 1000) { stage.clock.rate = 1; stop(); } });
 }

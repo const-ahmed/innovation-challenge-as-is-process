@@ -32,9 +32,9 @@ export default {
   beats: [
     {
       label: 'Setting sail',
+      caption: L.sail,
       async run(ctx) {
-        const { world: w, ui } = ctx;
-        ui.caption(L.sail);
+        const { world: w } = ctx;
         hornPuff(ctx);
         sail(ctx, 0, .04, 3600, ease.inQuad);
         ctx.tween({ duration: 1800, easing: ease.inOutCubic, onUpdate: t => w.usCrane.set(10.55 - t * 10.8, 10.5) });
@@ -48,8 +48,8 @@ export default {
     },
     {
       label: 'Crossing the Atlantic',
+      caption: L.map,
       async run(ctx) {
-        ctx.ui.caption(L.map);
         await crossing(ctx, .04, .5, 6500);
       },
       end({ world: w, stage, ui }) {
@@ -61,9 +61,9 @@ export default {
     },
     {
       label: 'At her desk',
+      caption: L.desk,
       async run(ctx) {
-        const { world: w, ui } = ctx, her = w.her;
-        ui.caption(L.desk);
+        const { world: w } = ctx, her = w.her;
         await ctx.camera(CAM.office, { duration: 2800, arc: .8 });
         her.setExpression('neutral');
         await sitDown(ctx);
@@ -83,9 +83,9 @@ export default {
     },
     {
       label: 'Filling in the declaration',
+      caption: L.details,
       async run(ctx) {
-        const { form, ui, world: w } = ctx;
-        ui.caption(L.details);
+        const { form, world: w } = ctx;
         form.reset();
         form.show();
         w.her.flags.typing = true;
@@ -101,9 +101,9 @@ export default {
     },
     {
       label: 'The commodity code',
+      caption: L.code,
       async run(ctx) {
-        const { form, ui, world: w } = ctx;
-        ui.caption(L.code);
+        const { form, world: w } = ctx;
         w.her.flags.typing = true;
         await ctx.wait(500);
         await typeFields(ctx, FORM.slice(codeAt));
@@ -119,8 +119,8 @@ export default {
     },
     {
       label: 'Two possible outcomes',
+      caption: L.branch,
       async run(ctx) {
-        ctx.ui.caption(L.branch);
         return ctx.do(ctx.ui.choose());
       },
       end() {},

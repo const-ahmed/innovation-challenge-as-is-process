@@ -5,7 +5,7 @@ import { ease } from '../../engine/tween.js';
 import { SEAT } from '../../props/character.js';
 import { CAM } from '../cameras.js';
 import { LINES, ASSISTANT, CODES, OUTCOMES } from '../script.js';
-import { setBranchState, sail, craneTransfer, drive, deliver, crossing } from '../actions.js';
+import { setBranchState, sail, craneTransfer, drive, deliver, delivered, crossing } from '../actions.js';
 
 const L = LINES.b;
 const WARM = '#f7ecd6', BRIGHT = '#f8eedb';
@@ -29,13 +29,14 @@ export default {
   beats: [
     {
       label: 'A tap on the shoulder',
+      caption: L.tap,
       async run(ctx) {
         const { world: w, ui, form, stage } = ctx, her = w.her, bot = w.bot, fx = w.fx;
         if (ctx.from === 'a') {
           ui.caption(L.rewind);
           await ui.rewind(ctx.wait, L.rewind);
+          ui.caption(L.tap);
         }
-        ui.caption(L.tap);
         stage.tweenMood({ bg: WARM, light: 1.05 }, { duration: 1600 });
         await ctx.wait(700);
         await form.hoverSubmit(ctx.wait);
@@ -71,9 +72,9 @@ export default {
     },
     {
       label: 'Spotting the outdated code',
+      caption: L.explain,
       async run(ctx) {
         const { world: w, ui, form } = ctx, bot = w.bot;
-        ui.caption(L.explain);
         w.her.pose('sitNod', { duration: 600 });
         ctx.camera(CAM.shoulder, { duration: 1300 });
         await ctx.do(bot.flyTo(w.officePoint(LAPTOP[0], LAPTOP[1], LAPTOP[2]).toArray(), { duration: 1100, lift: .25, yaw: -.35 }));
@@ -97,10 +98,10 @@ export default {
     },
     {
       label: 'Fixed before sending',
+      caption: L.fixing,
       async run(ctx) {
         const { world: w, ui, form } = ctx, her = w.her, bot = w.bot, fx = w.fx;
         const screen = screenPoint(w);
-        ui.caption(L.fixing);
         her.setExpression('happy');
         her.pose('type', { duration: 300 });
         her.flags.typing = true;
@@ -148,11 +149,12 @@ export default {
         w.her.setExpression('happy', 0);
         w.her.pose('sit', { duration: 0 });
       },
+      still(ctx) { this.end(ctx); ctx.form.show(); },
     },
     {
       label: 'Crossing to the UK',
+      caption: L.crossing,
       async run(ctx) {
-        ctx.ui.caption(L.crossing);
         ctx.stage.tweenMood({ bg: BRIGHT, light: 1.08 }, { duration: 1600 });
         await crossing(ctx, .5, .96, 5500);
       },
@@ -166,9 +168,9 @@ export default {
     },
     {
       label: 'Arriving in the UK',
+      caption: L.arrive,
       async run(ctx) {
-        const { world: w, ui } = ctx;
-        ui.caption(L.arrive);
+        const { world: w } = ctx;
         sail(ctx, .96, 1, 4200, ease.outQuad);
         await ctx.camera({ ...CAM.ship, follow: w.ship.root, offset: [4, 3, 0] }, { duration: 2400 });
         await ctx.wait(1800);
@@ -184,9 +186,9 @@ export default {
     },
     {
       label: 'Straight through the border',
+      caption: L.clear,
       async run(ctx) {
         const { world: w, ui } = ctx;
-        ui.caption(L.clear);
         w.checkpoint.setLamp('green');
         const cleared = ui.tag(w.container.root, '<b>Cleared</b><span>Declaration accepted</span>', { tone: 'green', offset: [0, 3.4, 0] });
         ctx.tween({ delay: 1200, duration: 1100, easing: ease.inOutCubic, onUpdate: t => w.checkpoint.setBarrier(t) });
@@ -203,9 +205,9 @@ export default {
     },
     {
       label: 'Fresh oranges, on time',
+      caption: L.home,
       async run(ctx) {
         const { world: w, ui, director } = ctx, her = w.her;
-        ui.caption(L.home);
         await deliver(ctx, { fresh: 1 });
         w.orange.userData.mat.color.set('#f39a2b');
         w.orange.visible = true;
@@ -225,6 +227,7 @@ export default {
         return null;
       },
       end() {},
+      still(ctx) { delivered(ctx, { fresh: 1, orange: '#f39a2b', pose: 'holdUp', expression: 'happy' }); },
     },
   ],
 };

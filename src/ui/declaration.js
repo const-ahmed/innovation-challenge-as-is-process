@@ -83,6 +83,17 @@ export class Declaration {
     if (state) f.classList.add(`is-${state}`);
   }
 
+  // What the storyboard draws over a still: the form's own panel is HTML, so it's not in the picture.
+  summary() {
+    const code = this.fields.get('code'), s = $(this.root, '.decl__status');
+    return {
+      shown: !this.root.classList.contains('is-hidden'),
+      code: this.value('code'),
+      mark: ['error', 'flag', 'ok'].find(k => code.classList.contains(`is-${k}`)) ?? null,
+      status: s.textContent, tone: s.dataset.tone,
+    };
+  }
+
   status(text, tone) { const s = $(this.root, '.decl__status'); s.textContent = text; s.dataset.tone = tone; }
 
   banner(tone, title, body) {

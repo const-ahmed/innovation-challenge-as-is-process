@@ -25,12 +25,13 @@ export class Feedback {
 
   get isOpen() { return !this.panel.hidden; }
 
-  open() {
+  // part: "chapter.beat" to preselect (defaults to the scene playing now)
+  open(part = `${this.director.current}.${this.director.beat}`) {
     const parts = this.director.parts();
     const chapters = [...new Set(parts.map(p => p.chapter))];
     this.select.innerHTML = `<option value="general">The whole experience</option>` + chapters.map(ch =>
       `<optgroup label="${this.names[ch]}">${parts.filter(p => p.chapter === ch).map(p => `<option value="${ch}.${p.beat}">Scene ${p.beat + 1}: ${p.label}</option>`).join('')}</optgroup>`).join('');
-    this.select.value = `${this.director.current}.${this.director.beat}`;
+    this.select.value = part;
     this.wasPaused = this.pause.get();
     this.pause.set(true);
     this.panel.hidden = false;

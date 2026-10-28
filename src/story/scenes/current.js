@@ -3,7 +3,7 @@
 import { ease, lerp } from '../../engine/tween.js';
 import { CAM } from '../cameras.js';
 import { LINES, REJECTION, OUTCOMES } from '../script.js';
-import { setBranchState, sail, craneTransfer, drive, nightPasses, standUp, deliver, crossing } from '../actions.js';
+import { setBranchState, sail, craneTransfer, drive, nightPasses, standUp, deliver, delivered, crossing } from '../actions.js';
 import { OFFICE } from '../places.js';
 
 const L = LINES.a;
@@ -20,9 +20,9 @@ export default {
   beats: [
     {
       label: 'Submitting as it is',
+      caption: L.submit,
       async run(ctx) {
-        const { world: w, ui, form, stage } = ctx, her = w.her;
-        ui.caption(L.submit);
+        const { world: w, form, stage } = ctx, her = w.her;
         stage.tweenMood({ bg: GREY, light: .94 }, { duration: 1800 });
         w.terrain.setCloudTone('#d6d8dc');
         await ctx.wait(700);
@@ -42,11 +42,12 @@ export default {
         w.her.setExpression('happy', 0);
         w.her.pose('sitNod', { duration: 0 });
       },
+      still(ctx) { this.end(ctx); ctx.form.show(); },
     },
     {
       label: 'Nearing the UK',
+      caption: L.nearing,
       async run(ctx) {
-        ctx.ui.caption(L.nearing);
         await crossing(ctx, .5, .84, 5000);
       },
       end({ world: w, ui, stage }) {
@@ -58,9 +59,9 @@ export default {
     },
     {
       label: 'The rejection',
+      caption: L.rejected,
       async run(ctx) {
         const { world: w, ui, form, stage } = ctx, her = w.her;
-        ui.caption(L.rejected);
         stage.tweenMood({ bg: GREYER, light: .88 }, { duration: 1500 });
         await ctx.camera(CAM.shoulder, { duration: 2400, arc: .6 });
         w.office.setScreen('error');
@@ -89,9 +90,9 @@ export default {
     },
     {
       label: 'Searching for answers',
+      caption: L.search,
       async run(ctx) {
-        const { world: w, ui, form } = ctx, her = w.her;
-        ui.caption(L.search);
+        const { world: w, form } = ctx, her = w.her;
         const arriving = sail(ctx, .84, 1, 9000, ease.inOutSine);
         her.pose('type', { duration: 300 });
         her.flags.typing = true;
@@ -114,9 +115,9 @@ export default {
     },
     {
       label: 'Arriving in the UK',
+      caption: L.arrive,
       async run(ctx) {
-        const { world: w, ui } = ctx;
-        ui.caption(L.arrive);
+        const { world: w } = ctx;
         await ctx.camera(CAM.ukPort, { duration: 2400, arc: .4 });
         await craneTransfer(ctx, w.ukCrane, w.truck.mount);
       },
@@ -128,9 +129,9 @@ export default {
     },
     {
       label: 'Held at the border',
+      caption: L.hold,
       async run(ctx) {
         const { world: w, ui } = ctx;
-        ui.caption(L.hold);
         w.checkpoint.setLamp('red');
         ctx.camera(CAM.checkpoint, { duration: 2600 });
         await ctx.do(drive(ctx, 0, w.truckStop, 3600).done);
@@ -154,9 +155,9 @@ export default {
     },
     {
       label: 'Days pass',
+      caption: L.days,
       async run(ctx) {
         const { world: w, ui } = ctx, her = w.her;
-        ui.caption(L.days);
         let day = 1;
         const nextDay = () => {
           day += 1;
@@ -222,9 +223,9 @@ export default {
     },
     {
       label: 'Released, three days late',
+      caption: L.release,
       async run(ctx) {
         const { world: w, ui, stage } = ctx;
-        ui.caption(L.release);
         ctx.state.held?.close();
         ui.hold(true, { day: 4, fresh: FRESH_BY_DAY[4], label: 'Released · Day 4' });
         w.checkpoint.setLamp('amber');
@@ -252,9 +253,9 @@ export default {
     },
     {
       label: 'A late delivery',
+      caption: L.late,
       async run(ctx) {
         const { world: w, ui, director } = ctx, her = w.her;
-        ui.caption(L.late);
         await deliver(ctx, { fresh: FRESH_BY_DAY[4] });
         w.orange.userData.mat.color.set('#9b8247');
         w.orange.visible = true;
@@ -271,6 +272,7 @@ export default {
         return null;
       },
       end() {},
+      still(ctx) { delivered(ctx, { fresh: FRESH_BY_DAY[4], orange: '#9b8247', pose: 'holdLow', expression: 'sad' }); },
     },
   ],
 };

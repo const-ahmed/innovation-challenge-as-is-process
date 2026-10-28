@@ -47,6 +47,7 @@ node scripts/build-index.mjs
 | The declaration panel and its animations | `src/ui/declaration.js` |
 | Speech bubbles, stickers, tags, captions, branch choice, end cards | `src/ui/overlay.js` |
 | The feedback panel (and which repo it posts to: `FEEDBACK` in `script.js`) | `src/ui/feedback.js` |
+| The storyboard (every scene as a card) | `src/ui/storyboard.js` |
 | Renderer, outlines, camera rig, hover/select, day–night mood | `src/engine/stage.js` |
 | Easing and the pausable story clock | `src/engine/tween.js` |
 
@@ -54,11 +55,15 @@ node scripts/build-index.mjs
 
 Each chapter file exports `init(ctx)` and a list of `beats`, the scenes viewers step through with the back and next buttons. Each scene has:
 
-- **`label`**: its name, shown in the caption bar and the feedback panel.
+- **`label`**: its name, shown in the caption bar, the feedback panel and the storyboard.
+- **`caption`**: the line shown when the scene starts (and on its storyboard card). A scene can still change the caption partway through with `ui.caption(...)`.
 - **`run(ctx)`**: plays the scene with `await`. The last scene can return the next chapter's id (the branch does), or `null` to stop at an ending.
 - **`end(ctx)`**: snaps the world instantly to how the scene leaves it, with no animation.
+- **`still(ctx)`** (optional): the moment the storyboard pictures, when `end` doesn't show the scene well, for example the deliveries, whose `end` is empty.
 
 To start at scene 4, the director runs `init`, then the `end` of scenes 1–3, then plays from scene 4. So when you change what a scene does, update its `end` to match.
+
+The storyboard uses the same mechanism: for each scene it runs `init` and the earlier `end`s, then that scene's `still` (or `end`), and photographs the canvas. The pictures are taken the first time someone opens the storyboard, and kept until the page reloads, so they always match the current code. The declaration form is HTML, not part of the canvas, so the storyboard draws a small version of it (the commodity code and the status) onto any picture where the form is showing.
 
 Inside `run`, use the helpers on `ctx`:
 

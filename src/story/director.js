@@ -1,6 +1,8 @@
 // Runs the story one chapter at a time. A chapter is a list of scenes ("beats"), each with
-//   run(ctx) — plays the scene, awaiting its animation through ctx helpers, and
-//   end(ctx) — snaps the world instantly to how that scene leaves it.
+//   label, caption — its name, and the line shown when it starts,
+//   run(ctx) — plays the scene, awaiting its animation through ctx helpers,
+//   end(ctx) — snaps the world instantly to how that scene leaves it, and
+//   still(ctx) — optional: the moment the storyboard pictures, when end() doesn't show it.
 // To start partway through a chapter, the director runs init, snaps the earlier scenes'
 // ends, then plays from there. Starting anything cancels what was playing: its tweens stop
 // and its next ctx await throws Cancelled, so stale code never touches the new state.
@@ -42,20 +44,16 @@ export class Director {
 
   // A chapter's last scene may return the next chapter's id (the branch does), or null to stop.
   async play(id, { beat = 0, from = this.current } = {}) {
-    const token = ++this.token;
-    const chapter = this.scenes[id];
-    this.stage.tweens.clear('story');
-    this.ui.resetTransient();
+    const { token, chapter, ctx } = this.setUp(id, beat, from);
     this.current = id;
+    this.from = from;
     this.ui.setChapter(id);
-    const ctx = this.ctx(token, from);
-    chapter.init(ctx);
-    for (let i = 0; i < beat; i++) chapter.beats[i].end(ctx);
     try {
       let result;
       for (let i = beat; i < chapter.beats.length; i++) {
         this.beat = i;
         this.emit();
+        this.ui.caption(chapter.beats[i].caption);
         result = await chapter.beats[i].run(ctx);
       }
       const next = result === undefined ? ORDER[id].next : result;
@@ -64,6 +62,27 @@ export class Director {
       if (!(e instanceof Cancelled)) console.error(e);
     }
   }
+
+  // Cancels whatever is playing and snaps the world to the start of scene `beat`.
+  setUp(id, beat, from) {
+    const token = ++this.token;
+    const chapter = this.scenes[id];
+    this.stage.tweens.clear('story');
+    this.ui.resetTransient();
+    const ctx = this.ctx(token, from);
+    chapter.init(ctx);
+    for (let i = 0; i < beat; i++) chapter.beats[i].end(ctx);
+    return { token, chapter, ctx };
+  }
+
+  // Poses the world as the storyboard pictures a scene, without playing anything. Whatever was
+  // playing stops; call resume() to restart it.
+  still(id, beat) {
+    const { chapter, ctx } = this.setUp(id, beat, ORDER[id].prev);
+    const b = chapter.beats[beat];
+    (b.still ?? b.end).call(b, ctx);
+  }
+  resume() { this.play(this.current, { beat: this.beat, from: this.from }); }
 
   /* ---------- back / next ---------- */
   canPrev() { return this.beat > 0 || !!ORDER[this.current]?.prev; }
@@ -80,7 +99,7 @@ export class Director {
 
   /* ---------- where we are ---------- */
   parts() {
-    return Object.entries(this.scenes).flatMap(([chapter, ch]) => ch.beats.map((b, i) => ({ chapter, beat: i, count: ch.beats.length, label: b.label })));
+    return Object.entries(this.scenes).flatMap(([chapter, ch]) => ch.beats.map((b, i) => ({ chapter, beat: i, count: ch.beats.length, label: b.label, caption: b.caption })));
   }
   onChange(fn) { this.listeners.add(fn); }
   emit() {

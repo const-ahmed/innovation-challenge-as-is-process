@@ -354,6 +354,26 @@ export class Stage {
     this.render();
   }
 
+  // A still of the current view, w pixels wide, as a canvas. Runs story time forward
+  // first (without waiting for frames) so snapped poses and fades finish.
+  snapshot(w, settle = 800) {
+    const user = this.user;
+    this.user = { az: 0, zoom: 1 };   // the scripted framing, not wherever the viewer has dragged
+    for (let t = 0; t < settle; t += 50) {
+      this.clock.now += 50;
+      this.tweens.update();
+      for (const f of this.ticks) f(this.clock.now / 1000, .05);
+    }
+    this.placeCamera(1);
+    this.render();
+    this.user = user;
+    const src = this.canvas, out = document.createElement('canvas');
+    out.width = w;
+    out.height = Math.round(w * src.height / src.width);
+    out.getContext('2d').drawImage(src, 0, 0, out.width, out.height);
+    return out;
+  }
+
   render() {
     const r = this.renderer;
     r.shadowMap.needsUpdate = true;

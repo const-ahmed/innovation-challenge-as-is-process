@@ -33,9 +33,9 @@ export default {
   beats: [
     {
       label: 'Placing the order',
+      caption: L.intro,
       async run(ctx) {
         const { world: w, ui } = ctx, her = w.her;
-        ui.caption(L.intro);
         her.setExpression('happy');
         await ctx.wait(900);
         w.phone.visible = true;
@@ -58,9 +58,9 @@ export default {
     },
     {
       label: 'The paperwork',
+      caption: L.docs,
       async run(ctx) {
-        const { world: w, ui } = ctx;
-        ui.caption(L.docs);
+        const { world: w } = ctx;
         placeDocs(w);
         w.docs.forEach((d, i) => {
           d.root.scale.setScalar(.001);
@@ -77,9 +77,9 @@ export default {
     },
     {
       label: 'Paperwork to Florida',
+      caption: L.fly,
       async run(ctx) {
-        const { world: w, ui } = ctx, her = w.her;
-        ui.caption(L.fly);
+        const { world: w } = ctx, her = w.her;
         her.pose('wave', { duration: 300 });
         her.flags.waving = true;
         // the documents fly to the USA while the camera pulls out to the whole map
@@ -113,12 +113,25 @@ export default {
         w.her.pose('stand', { duration: 0 });
         stage.jumpCamera(CAM.usPort);
       },
+      // the documents halfway across the map
+      still(ctx) {
+        const w = ctx.world;
+        placeDocs(w);
+        const dest = new THREE.Vector3(US.containerDoor[0], 1.7, US.containerDoor[1]);
+        w.docs.forEach((d, i) => {
+          const p0 = d.root.position.clone(), p2 = dest.clone().add(new THREE.Vector3(0, i * .6, (i - 1) * .9));
+          d.root.position.copy(p0.lerp(p2, .5).setY(110 + i * 40));
+          d.root.scale.setScalar(40);
+        });
+        w.her.pose('wave', { duration: 0 });
+        ctx.stage.jumpCamera(CAM.world);
+      },
     },
     {
       label: 'Packing the oranges',
+      caption: L.pack,
       async run(ctx) {
-        const { world: w, ui } = ctx;
-        ui.caption(L.pack);
+        const { world: w } = ctx;
         w.crates.forEach((c, i) => {
           c.root.visible = true;
           c.root.scale.setScalar(.001);
@@ -152,12 +165,18 @@ export default {
         w.container.setDoors(0);
         stage.jumpCamera(CAM.usPort);
       },
+      // crates on the quay, doors open
+      still({ world: w, stage }) {
+        w.crates.forEach(c => { c.root.visible = true; c.root.position.copy(c.home); c.root.scale.setScalar(1); });
+        w.container.setDoors(1);
+        stage.jumpCamera(CAM.usPort);
+      },
     },
     {
       label: 'Loading the ship',
+      caption: L.load,
       async run(ctx) {
-        const { world: w, ui } = ctx;
-        ui.caption(L.load);
+        const { world: w } = ctx;
         await ctx.camera(CAM.usLoad, { duration: 1500 });
         await craneTransfer(ctx, w.usCrane, w.ship.slot);
         hornPuff(ctx);
