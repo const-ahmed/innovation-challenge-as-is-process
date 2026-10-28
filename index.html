@@ -7,7 +7,7 @@
 <style>body { margin: 0; } img { max-width: 100%; }</style>
 <title>Oranges Across the Atlantic</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="vendor/fonts/fonts.css">
+<link rel="stylesheet" href="./vendor/fonts/fonts.css?v=0b12f9db">
 <style>
   /* Layout: full-bleed orthographic diorama; HUD in the corners, form docks right.
      Deliberately single-theme: the warm toy-table look is the point, and the story
@@ -288,6 +288,8 @@
   .scene__play { all: unset; cursor: pointer; display: grid; align-content: start; gap: 3px; padding-bottom: 40px; }
   .scene__play:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; border-radius: 12px; }
   .scene__thumb { position: relative; display: block; aspect-ratio: 16 / 10; margin-bottom: 7px; background: linear-gradient(100deg, var(--line) 30%, var(--panel) 50%, var(--line) 70%) 0 0 / 300% 100%; animation: shimmer 1.4s linear infinite; }
+  .scene.no-pic .scene__thumb { display: none; }
+  .scene.no-pic .scene__play { padding-top: 12px; }
   .scene__thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .scene__now { display: none; position: absolute; left: 8px; top: 8px; padding: 4px 7px; border-radius: 5px; background: var(--ink); color: var(--panel); font: 600 10.5px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; }
   .scene.is-now .scene__now { display: block; }
@@ -585,8 +587,41 @@
 <div class="tip" id="tip"></div>
 
 <script type="importmap">
-{ "imports": { "three": "./vendor/three.module.js" } }
+{
+  "imports": {
+    "three": "./vendor/three.module.js?v=23f5aba7",
+    "./src/engine/kit.js": "./src/engine/kit.js?v=d9b1b74d",
+    "./src/engine/stage.js": "./src/engine/stage.js?v=9eada007",
+    "./src/engine/tween.js": "./src/engine/tween.js?v=d36ec4f3",
+    "./src/main.js": "./src/main.js?v=d1c643cc",
+    "./src/props/assistant.js": "./src/props/assistant.js?v=6a97f38f",
+    "./src/props/cargo.js": "./src/props/cargo.js?v=ab68f333",
+    "./src/props/character.js": "./src/props/character.js?v=031fa9fe",
+    "./src/props/documents.js": "./src/props/documents.js?v=570ac7a8",
+    "./src/props/fx.js": "./src/props/fx.js?v=7213c44b",
+    "./src/props/office.js": "./src/props/office.js?v=acdeef17",
+    "./src/props/port.js": "./src/props/port.js?v=8ae57c5a",
+    "./src/props/route.js": "./src/props/route.js?v=9767731a",
+    "./src/props/ship.js": "./src/props/ship.js?v=3189ff08",
+    "./src/props/terrain.js": "./src/props/terrain.js?v=62df01b9",
+    "./src/story/actions.js": "./src/story/actions.js?v=976d9ad3",
+    "./src/story/cameras.js": "./src/story/cameras.js?v=49789c29",
+    "./src/story/director.js": "./src/story/director.js?v=96504e64",
+    "./src/story/geo.js": "./src/story/geo.js?v=f27a28f3",
+    "./src/story/places.js": "./src/story/places.js?v=0f36883f",
+    "./src/story/scenes/assisted.js": "./src/story/scenes/assisted.js?v=db6c2d9e",
+    "./src/story/scenes/current.js": "./src/story/scenes/current.js?v=6b4b5544",
+    "./src/story/scenes/journey.js": "./src/story/scenes/journey.js?v=6b5abc2e",
+    "./src/story/scenes/prepare.js": "./src/story/scenes/prepare.js?v=62d5fcec",
+    "./src/story/script.js": "./src/story/script.js?v=0ade071f",
+    "./src/story/world.js": "./src/story/world.js?v=55c84034",
+    "./src/ui/declaration.js": "./src/ui/declaration.js?v=dab16302",
+    "./src/ui/feedback.js": "./src/ui/feedback.js?v=2f3f40cd",
+    "./src/ui/overlay.js": "./src/ui/overlay.js?v=9da44e16",
+    "./src/ui/storyboard.js": "./src/ui/storyboard.js?v=16bc50bd"
+  }
+}
 </script>
-<script type="module" src="src/main.js"></script>
+<script type="module" src="./src/main.js?v=d1c643cc"></script>
 </body>
 </html>

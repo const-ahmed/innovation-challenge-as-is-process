@@ -1,10 +1,15 @@
 // The storyboard: every scene as a card (picture, title, caption), with the shared chapters on
 // top and the two scenarios side by side below. Clicking a card plays from that scene.
 // Pictures are taken live: the director snaps the world to each scene and the stage photographs
-// it, once per visit to the page. Opening it pauses the story; closing it picks up where it was.
+// it, once per visit to the page. On a slow machine (no graphics acceleration) it stops taking
+// pictures and leaves the cards as text. Opening it pauses the story; closing it picks up where it was.
 const $ = s => document.querySelector(s);
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const THUMB_W = 360;
+const SLOW_MS = 500;           // a picture taking longer than this means the machine can't keep up
+const SLOW_FRAME_MS = 50;      // nor can one drawing the story at under 20 frames a second
+const frame = () => new Promise(r => requestAnimationFrame(r));
+const idle = ms => new Promise(r => setTimeout(r, ms));
 const SHARED = ['prepare', 'journey'], FORK = ['a', 'b'];
 const INK = '#1c2236', MUTED = '#7d705f', PANEL = '#fbf6ee', LINE = '#e0d2bd';
 const TONE = { draft: MUTED, pending: '#c98a12', ink: INK, bad: '#c8463d', ok: '#2f9e62' };
@@ -20,6 +25,7 @@ export class Storyboard {
     this.cards = new Map();      // "chapter.beat" → card element
     this.run = 0;                // bumps to stop a capture in progress
     this.snapped = false;        // the world was moved for pictures, so the story must restart
+    this.textOnly = false;       // pictures were too slow or failed here
 
     $('#boardBtn').addEventListener('click', () => this.open());
     $('#boardClose').addEventListener('click', () => this.close());
@@ -37,6 +43,7 @@ export class Storyboard {
     this.pause.set(true);
     document.body.classList.add('has-board');
     this.panel.hidden = false;
+    this.stage.covered = true;
     requestAnimationFrame(() => {
       this.panel.classList.add('is-in');
       const card = this.cards.get(now);
@@ -52,6 +59,7 @@ export class Storyboard {
     this.panel.classList.remove('is-in');
     this.panel.hidden = true;
     document.body.classList.remove('has-board');
+    this.stage.covered = false;
     if (!resume) return;
     if (this.snapped) { this.snapped = false; this.director.resume(); }
     if (!this.wasPaused) this.pause.set(false);
@@ -104,22 +112,36 @@ export class Storyboard {
     return li;
   }
 
-  // Photograph every scene not yet pictured, one per frame so the board stays responsive.
+  // Photograph every scene not yet pictured, one at a time, letting the board paint and take
+  // clicks in between.
   async capture() {
     const run = ++this.run;
+    if (this.stage.frameMs > SLOW_FRAME_MS) this.textOnly = true;
+    await frame();
+    await idle(150);     // the board is on screen before the first picture
     for (const p of this.director.parts()) {
       const key = `${p.chapter}.${p.beat}`;
       if (this.thumbs.has(key)) { this.show(key); continue; }
-      await new Promise(r => requestAnimationFrame(r));
+      if (this.textOnly) break;
+      await frame();
+      await idle(0);
       if (run !== this.run) return;
-      this.director.still(p.chapter, p.beat);
-      this.snapped = true;
-      const still = this.stage.snapshot(THUMB_W * Math.min(2, devicePixelRatio || 1));
-      const form = this.form.summary();
-      if (form.shown) drawForm(still, form);
-      this.thumbs.set(key, still.toDataURL('image/jpeg', .82));
-      this.show(key);
+      try {
+        const t0 = performance.now();
+        this.director.still(p.chapter, p.beat);
+        this.snapped = true;
+        const still = this.stage.snapshot(THUMB_W * Math.min(2, devicePixelRatio || 1));
+        const form = this.form.summary();
+        if (form.shown) drawForm(still, form);
+        this.thumbs.set(key, still.toDataURL('image/jpeg', .82));
+        this.show(key);
+        if (performance.now() - t0 > SLOW_MS) this.textOnly = true;
+      } catch (e) {
+        console.warn('storyboard: pictures unavailable', e);
+        this.textOnly = true;
+      }
     }
+    if (this.textOnly) for (const [key, card] of this.cards) if (!this.thumbs.has(key)) card.classList.add('no-pic');
   }
 
   show(key) {
@@ -137,7 +159,7 @@ function drawForm(canvas, { code, mark, status, tone }) {
   const w = 128 * u, h = 70 * u, x = canvas.width - w - 12 * u, y = 12 * u;
   g.save();
   g.fillStyle = PANEL; g.strokeStyle = INK; g.lineWidth = 1.6 * u;
-  g.beginPath(); g.roundRect(x, y, w, h, 7 * u); g.fill(); g.stroke();
+  g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, 7 * u) : g.rect(x, y, w, h); g.fill(); g.stroke();
   g.textBaseline = 'alphabetic';
   g.fillStyle = MUTED;
   g.font = `600 ${7.5 * u}px "Barlow Semi Condensed", sans-serif`;

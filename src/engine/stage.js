@@ -31,6 +31,8 @@ export class Stage {
     this.view = { target: new THREE.Vector3(), span: 60, azimuth: -.5, elevation: .62, sx: .5, sy: .52 };
     this.user = { az: 0, zoom: 1 };
     this.follow = null;
+    this.covered = false;
+    this.frameMs = 16;                 // smoothed time per drawn frame: a sense of how fast this machine is
     this.size = { w: 1, h: 1, dpr: 1 };
     this.mood = { bg: new THREE.Color(background), light: 1 };
 
@@ -338,7 +340,7 @@ export class Stage {
 
   loop(now) {
     requestAnimationFrame(this.loop);
-    const real = Math.max(0, Math.min(64, now - this.last));
+    const gap = Math.max(0, now - this.last), real = Math.min(64, gap);
     this.last = now;
     this.uiClock.step(real);
     this.clock.step(real);
@@ -351,7 +353,9 @@ export class Stage {
     this.placeCamera(real / 1000);
     this.updateRing();
     this.hooks.frame?.();
+    if (this.covered) return;           // skip drawing while a full-screen panel hides the scene
     this.render();
+    this.frameMs += (Math.min(gap, 1000) - this.frameMs) * .2;
   }
 
   // A still of the current view, w pixels wide, as a canvas. Runs story time forward
