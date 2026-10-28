@@ -20,9 +20,11 @@ Add `#prepare`, `#journey`, `#a` or `#b` to the URL to open a chapter directly, 
 
 ## Deploying
 
-`index.html` is the deployable page; any static host can serve the folder as it is, with no build step. On Vercel, use the "Other" preset with the root directory `./`.
+`index.html` is the deployable page; any static host can serve the folder as it is, with no build step. It's live on GitHub Pages at https://const-ahmed.github.io/innovation-challenge-as-is-process/ (deploys from `main`), which work networks that block newer domains usually allow. On Vercel, use the "Other" preset with the root directory `./`.
 
-`index.html` is generated from `customs-journey.html`, which has no document skeleton because the Claude artifact host adds one. After editing `customs-journey.html`, rebuild:
+`index.html` loads three.js and its fonts from `vendor/` rather than a CDN, so it works on networks that block `cdn.jsdelivr.net` or Google Fonts.
+
+`index.html` is generated from `customs-journey.html`, which has no document skeleton because the Claude artifact host adds one (and which still uses the CDN copies). After editing `customs-journey.html`, rebuild:
 
 ```sh
 node scripts/build-index.mjs

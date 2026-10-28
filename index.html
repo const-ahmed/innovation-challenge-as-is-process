@@ -7,9 +7,7 @@
 <style>body { margin: 0; } img { max-width: 100%; }</style>
 <title>Oranges Across the Atlantic</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="vendor/fonts/fonts.css">
 <style>
   /* Layout: full-bleed orthographic diorama; HUD in the corners, form docks right.
      Deliberately single-theme: the warm toy-table look is the point, and the story
@@ -515,7 +513,7 @@
 <div class="tip" id="tip"></div>
 
 <script type="importmap">
-{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+{ "imports": { "three": "./vendor/three.module.js" } }
 </script>
 <script type="module" src="src/main.js"></script>
 </body>
