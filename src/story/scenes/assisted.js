@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { ease } from '../../engine/tween.js';
 import { SEAT } from '../../props/character.js';
 import { CAM } from '../cameras.js';
-import { LINES, ASSISTANT, CODES, OUTCOMES } from '../script.js';
+import { LINES, ASSISTANT, CODES, OUTCOMES, GUIDANCE } from '../script.js';
 import { setBranchState, sail, craneTransfer, drive, deliver, delivered, crossing } from '../actions.js';
 
 const L = LINES.b;
@@ -71,7 +71,7 @@ export default {
       },
     },
     {
-      label: 'Spotting the outdated code',
+      label: 'Pointing to the guidance',
       caption: L.explain,
       async run(ctx) {
         const { world: w, ui, form } = ctx, bot = w.bot;
@@ -85,6 +85,7 @@ export default {
         await ctx.wait(900);
         await ctx.do(form.callout(ASSISTANT.callout, ctx.wait, { auto: 15000 }));
         point.close();
+        form.closeCallout();
       },
       end({ world: w, form, stage }) {
         placeBot(w, LAPTOP, -.35);
@@ -97,19 +98,41 @@ export default {
       },
     },
     {
+      label: 'Checking the guidance',
+      caption: L.guidance,
+      async run(ctx) {
+        const { world: w, form } = ctx, her = w.her;
+        her.pose('type', { duration: 300 });
+        her.flags.typing = true;
+        await form.guidance(GUIDANCE, ctx.wait);
+        her.flags.typing = false;
+        her.setExpression('neutral');
+        her.pose('sitThink', { duration: 500 });
+        await ctx.wait(2600);
+        her.setExpression('happy');
+        her.pose('sitNod', { duration: 400 });
+        await ctx.wait(900);
+      },
+      end({ world: w, form }) {
+        form.showGuidance(GUIDANCE);
+        w.her.flags.typing = false;
+        w.her.setExpression('happy', 0);
+        w.her.pose('sitNod', { duration: 0 });
+      },
+    },
+    {
       label: 'Fixed before sending',
       caption: L.fixing,
       async run(ctx) {
         const { world: w, ui, form } = ctx, her = w.her, bot = w.bot, fx = w.fx;
         const screen = screenPoint(w);
-        her.setExpression('happy');
         her.pose('type', { duration: 300 });
         her.flags.typing = true;
         await form.backspace('code', 2, ctx.wait);
         await form.type('code', CODES.right.slice(-2), ctx.wait, { cps: 5 });
         her.flags.typing = false;
         form.mark('code', 'ok');
-        form.closeCallout();
+        form.hideSearch();
         form.focus(null);
         fx.sparkle(screen, { color: '#52d68a' });
         bot.point(false);
@@ -139,6 +162,7 @@ export default {
         form.setValue('code', CODES.right);
         form.mark('code', 'ok');
         form.closeCallout();
+        form.hideSearch();
         form.status('Accepted', 'ok');
         form.hide();
         w.office.setScreen('ok');
@@ -207,7 +231,7 @@ export default {
       label: 'Fresh oranges, on time',
       caption: L.home,
       async run(ctx) {
-        const { world: w, ui, director } = ctx, her = w.her;
+        const { world: w, ui } = ctx, her = w.her;
         await deliver(ctx, { fresh: 1 });
         w.orange.userData.mat.color.set('#f39a2b');
         w.orange.visible = true;
@@ -219,6 +243,29 @@ export default {
         w.fx.confetti(her.headTop.getWorldPosition(new THREE.Vector3()));
         ui.sticker(her.headTop, '♥', { tone: 'orange', life: 1800 });
         await ctx.wait(2200);
+      },
+      end(ctx) { delivered(ctx, { fresh: 1, orange: '#f39a2b', pose: 'cheer', expression: 'happy' }); ctx.world.orange.visible = false; },
+      still(ctx) { delivered(ctx, { fresh: 1, orange: '#f39a2b', pose: 'holdUp', expression: 'happy' }); },
+    },
+    {
+      label: 'Happy customers',
+      caption: L.customers,
+      async run(ctx) {
+        const { world: w, ui, director } = ctx;
+        w.setCustomers('waiting');
+        await ctx.camera(CAM.stall, { duration: 2200, arc: .3 });
+        w.stall.setBoard('open');
+        w.customers.forEach((c, i) => {
+          c.cup.visible = true;
+          c.setExpression('happy');
+          c.pose(i === 1 ? 'cheer' : 'holdUp', { duration: 450 });
+        });
+        w.fx.confetti(w.customers[1].headTop.getWorldPosition(new THREE.Vector3()));
+        ui.sticker(w.customers[0].headTop, '♥', { tone: 'orange', life: 1800 });
+        const praise = ui.bubble(w.customers[2].headTop, 'Best orange juice in town!', { speaker: 'Customer' });
+        await ctx.wait(3200);
+        praise.close();
+        await ctx.wait(1200);
         ui.endCard('b', OUTCOMES.b, {
           other: OUTCOMES.a,
           onNext: () => director.play('a', { from: 'b' }),
@@ -227,7 +274,7 @@ export default {
         return null;
       },
       end() {},
-      still(ctx) { delivered(ctx, { fresh: 1, orange: '#f39a2b', pose: 'holdUp', expression: 'happy' }); },
+      still({ world: w, stage }) { w.setCustomers('happy'); stage.jumpCamera(CAM.stall); },
     },
   ],
 };

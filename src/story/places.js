@@ -30,6 +30,8 @@ export const US = {
   packhouse: us(-32, -25),
   grove: { x0: US_BERTH[0] - 62, z0: US_BERTH[1] - 50, cols: 3, rows: 3, gap: 7 },
   flag: us(16, -14),
+  exporter: us(-15.2, -13.6),        // by the pallet of crates
+  agent: us(3.2, -13.4),             // on the quay by the ship
 };
 
 const ROAD_X = 12;   // the UK road north from the port, relative to the berth
@@ -55,4 +57,7 @@ export const OFFICE = {
   seat: [0, -2.12],            // local, she faces -z (the back wall) when seated
   stand: [-.9, -1.4],          // local spot by the desk, used in scene 1
   door: [-5.2, 1.2],           // local, just outside the open side
+  stall: [-3.4, 7.2],          // local: Rose's juice stall, front facing +x
+  server: [-4.35, 7],          // local: where Rose stands to serve
+  customers: [[-2.3, 6.4, -1.45], [-1.5, 7.3, -1.25], [-2.2, 8.2, -1.05]],   // local x, z, yaw
 };

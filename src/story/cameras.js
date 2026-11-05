@@ -8,6 +8,7 @@ const office = (dx, y, dz) => [OFFICE.origin[0] + dx, y, OFFICE.origin[2] + dz];
 const mid = [(US_BERTH[0] + UK_BERTH[0]) / 2, 0, (US_BERTH[1] + UK_BERTH[1]) / 2];
 
 export const CAM = {
+  stall: { target: office(-2.9, 1.1, 7.3), span: 11, azimuth: .22, elevation: .4, sx: .5, sy: .56 },
   officeIntro: { target: office(-.8, 1.05, .1), span: 6.5, azimuth: -.42, elevation: .46, sx: .5, sy: .56 },
   office: { target: office(-.4, 1.3, -.9), span: 11, azimuth: -.5, elevation: .58, sx: .5, sy: .55 },
   officePace: { target: office(-1, 1.1, -.3), span: 9, azimuth: -.38, elevation: .5, sx: .5, sy: .55 },
@@ -19,6 +20,8 @@ export const CAM = {
   ship: { span: 78, azimuth: -.45, elevation: .6, sx: .5, sy: .55 },
 
   usPort: { target: near(US_BERTH, -9, 1.5, -13.3), span: 40, azimuth: -.35, elevation: 1.0, sx: .5, sy: .55 },
+  exporter: { target: near(US_BERTH, -14.4, 1.1, -13.2), span: 9, azimuth: -.35, elevation: .42, sx: .5, sy: .58 },
+  agent: { target: near(US_BERTH, 3.2, 1.3, -13.4), span: 12, azimuth: 2.75, elevation: .4, sx: .5, sy: .5 },   // from the land side, the ship behind
   usLoad: { target: near(US_BERTH, -4, 5, -5.8), span: 48, azimuth: -.5, elevation: .78, sx: .5, sy: .56 },
   ukPort: { target: near(UK_BERTH, 4, 4, -6.8), span: 50, azimuth: -.45, elevation: .78, sx: .5, sy: .55 },
   checkpoint: { target: near(UK_BERTH, 12.5, 2.2, -18.5), span: 28, azimuth: .55, elevation: .52, sx: .5, sy: .55 },

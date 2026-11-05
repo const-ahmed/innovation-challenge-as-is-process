@@ -110,6 +110,15 @@
   .tag--red .tag__box { background: var(--red); }
   .tag--green .tag__box { background: var(--green); }
   .tag--amber .tag__box { background: var(--amber); }
+  /* name labels: under a person's feet, or above a thing */
+  .plate { z-index: -1; }
+  .plate__box {
+    transform: translate(-50%, 6px); display: grid; justify-items: center; gap: 1px; padding: 4px 9px 5px; border-radius: 7px; white-space: nowrap;
+    background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1.5px solid var(--ink); box-shadow: 0 6px 14px -9px rgb(30 20 10 / .55);
+  }
+  .plate--above .plate__box { transform: translate(-50%, calc(-100% - 6px)); }
+  .plate__box b { font: 700 13px/1.05 var(--display); letter-spacing: .04em; }
+  .plate__box span { font: 500 11px/1.1 var(--body); color: var(--muted); }
   @keyframes popIn { from { opacity: 0; scale: .6; } to { opacity: 1; scale: 1; } }
   @keyframes popOut { to { opacity: 0; scale: .85; } }
   @keyframes floatUp { 0% { opacity: 0; translate: 0 10px; scale: .5; } 15% { opacity: 1; scale: 1.08; } 25% { scale: 1; } 80% { opacity: 1; } 100% { opacity: 0; translate: 0 -26px; } }
@@ -202,7 +211,7 @@
   .field--code .field__value { padding: 3px 6px; }
   .field__mark { margin-left: auto; font: 700 13px/1 var(--display); letter-spacing: .08em; }
   .field.is-flag .field__value { border-color: var(--red); background: var(--red-soft); box-shadow: 0 0 0 4px color-mix(in srgb, var(--red) 18%, transparent); animation: shake .45s ease; }
-  .field.is-flag .field__mark::after { content: "OUTDATED"; color: var(--red); }
+  .field.is-flag .field__mark::after { content: "CHECK THIS"; color: var(--red); }
   .field.is-flag .digits i:nth-child(n+7) { background: #f6c6bf; }
   .field.is-ok .field__value { border-color: var(--green); background: var(--green-soft); }
   .field.is-ok .field__mark::after { content: "✓ VALID"; color: var(--green); }
@@ -228,6 +237,13 @@
   .search__box::before { content: "⌕"; font-size: 18px; color: var(--muted); margin-right: 6px; }
   .search__res { font-size: 13.5px; color: var(--muted); display: flex; align-items: center; gap: 8px; min-height: 18px; }
   .search__none { color: var(--red); }
+  .guide { display: grid; gap: 5px; width: 100%; }
+  .guide__src { font: 600 10.5px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--teal-deep); }
+  .guide__row { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: baseline; padding: 6px 9px; border-radius: 7px; border: 1px solid var(--line); background: #fff; color: var(--ink); }
+  .guide__row code { font: 600 13px/1 var(--mono); }
+  .guide__row[data-state="old"] { opacity: .6; }
+  .guide__row[data-state="old"] code { text-decoration: line-through; }
+  .guide__row[data-state="match"] { border-color: var(--green); background: var(--green-soft); animation: popIn .34s cubic-bezier(.34, 1.56, .64, 1) both; }
   .spinner { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--ink); animation: spin .7s linear infinite; }
   @keyframes spin { to { rotate: 360deg; } }
   .decl__foot { padding: 10px 16px 14px; border-top: 1px dashed var(--line); }
@@ -355,12 +371,17 @@
   .fresh { display: grid; gap: 5px; }
   .fresh__row { display: flex; justify-content: space-between; font: 600 11px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
   .fresh__row b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .costs { display: grid; gap: 5px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .costs > span { font: 600 10.5px/1.2 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .costs ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; }
+  .costs li { position: relative; padding-left: 16px; font-size: 13px; line-height: 1.3; animation: popIn .3s ease both; }
+  .costs li::before { content: "£"; position: absolute; left: 0; top: 0; font: 700 13px/1.3 var(--display); color: var(--red); }
   #holdFresh { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
   #holdFresh::after { content: ""; display: block; height: 100%; width: calc(var(--f, 1) * 100%); background: linear-gradient(90deg, #8a7a45, var(--orange)); border-radius: 4px; transition: width .3s; }
 
   /* ---------- end card ---------- */
   #end {
-    position: fixed; z-index: 30; left: 50%; top: 50%; translate: -50% -50%; width: min(480px, calc(100% - 32px));
+    position: fixed; z-index: 30; left: 50%; top: 50%; translate: -50% -50%; width: min(540px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow: auto;
     background: var(--panel); border: 2px solid var(--ink); border-radius: 16px; padding: 22px 24px 22px; display: grid; gap: 12px;
     box-shadow: 0 28px 60px -24px rgb(30 20 10 / .6); opacity: 0; scale: .95; transition: opacity .35s, scale .45s cubic-bezier(.34, 1.4, .64, 1);
   }
@@ -369,11 +390,13 @@
   #end[data-variant="a"] .end__eyebrow { color: var(--red); }
   #end[data-variant="b"] .end__eyebrow { color: var(--teal-deep); }
   #end h2 { margin: 0; font: 700 32px/1.05 var(--display); text-wrap: balance; }
-  #end ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; }
-  #end li { position: relative; padding-left: 22px; font-size: 15px; line-height: 1.45; }
-  #end li::before { content: ""; position: absolute; left: 2px; top: .5em; width: 9px; height: 9px; border-radius: 50%; }
-  #end[data-variant="a"] li::before { background: var(--red); }
-  #end[data-variant="b"] li::before { background: var(--teal); }
+  .end__groups { margin: 0; display: grid; gap: 8px; }
+  .end__groups div { display: grid; grid-template-columns: 112px 1fr; gap: 10px; align-items: baseline; padding-top: 8px; border-top: 1px solid var(--line); }
+  .end__groups div:first-child { border-top: 0; padding-top: 0; }
+  .end__groups dt { font: 700 12px/1.2 var(--display); letter-spacing: .12em; text-transform: uppercase; }
+  #end[data-variant="a"] .end__groups dt { color: var(--red); }
+  #end[data-variant="b"] .end__groups dt { color: var(--teal-deep); }
+  .end__groups dd { margin: 0; font-size: 14.5px; line-height: 1.4; }
   .end__compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .end__compare div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; }
   .end__compare span { font: 600 10.5px/1.2 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
@@ -425,6 +448,7 @@
     .chip.is-on { padding-right: 12px; }
   }
   @media (max-width: 760px) {
+    .end__groups div { grid-template-columns: 1fr; gap: 2px; }
     :root { --form-w: 100%; }
     .top { grid-template-columns: 1fr auto; }
     .chapters { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; }
@@ -490,13 +514,13 @@
   <div id="branch" hidden>
     <button class="choice choice--a" type="button" data-pick="a">
       <i>Scenario A · Current system</i>
-      <b>She submits it as it is</b>
+      <b>Rose submits it as it is</b>
       <span>Nothing checks the code before it goes to customs.</span>
     </button>
     <button class="choice choice--b" type="button" data-pick="b">
       <i>Scenario B · Proposed solution</i>
       <b>A pre-submission check steps in</b>
-      <span>An assistant reviews the declaration before it’s sent.</span>
+      <span>A checker reviews the declaration before it’s sent and points her to the guidance.</span>
     </button>
   </div>
   <div id="caption" hidden>
@@ -529,6 +553,10 @@
   <div class="fresh">
     <div class="fresh__row"><span>Fruit freshness</span><b id="holdFreshText">100%</b></div>
     <div id="holdFresh"></div>
+  </div>
+  <div class="costs" id="holdCostBox" hidden>
+    <span>Costs adding up</span>
+    <ul id="holdCosts"></ul>
   </div>
 </aside>
 

@@ -45,7 +45,8 @@ A new branch appears at `preview/<branch>/` a minute or two after its first push
 
 | To change… | Edit |
 | --- | --- |
-| Wording, form values, the codes, end-card text, inspect cards | `src/story/script.js` |
+| Wording, form values, the codes, end-card text, inspect cards, the people's name labels (`PEOPLE`), the checker's guidance (`GUIDANCE`) | `src/story/script.js` |
+| The other people (exporter, shipping agent, customers) and Rose's juice stall | `src/story/world.js`, `src/props/stall.js` |
 | What happens in a scene, and in what order | `src/story/scenes/*.js` (one file per chapter) |
 | Camera framings | `src/story/cameras.js` |
 | The world map: projection, coastlines, map lettering | `src/story/geo.js` |

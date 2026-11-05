@@ -11,6 +11,7 @@ export class Overlay {
     this.stage = stage;
     this.layer = $('#anchors');
     this.anchors = new Set();
+    this.labels = new Set();
     this.screen = {};
     const prev = stage.hooks.frame;
     stage.hooks.frame = () => { prev?.(); this.update(); };
@@ -44,7 +45,27 @@ export class Overlay {
     a.el.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px)`;
     a.el.hidden = !s.on;
   }
-  update() { for (const a of this.anchors) this.place(a); }
+  update() {
+    for (const a of this.anchors) this.place(a);
+    const zoom = this.stage.ppm();
+    for (const a of this.labels) {
+      if (!shown(a.obj) || zoom < a.minZoom) { a.el.hidden = true; continue; }
+      this.place(a);
+    }
+  }
+
+  /* ---------- name labels ---------- */
+  // Always on, unlike pins: scenes don't clear them. They show while their object is visible
+  // and the camera is close enough (minZoom, in pixels per world unit), so not over the map.
+  // People get theirs under their feet, clear of speech bubbles; things get theirs above.
+  label(obj, { name, role }, { offset = [0, 0, 0], above = false, minZoom = 7 } = {}) {
+    const node = el('div', `plate${above ? ' plate--above' : ''}`, '<div class="plate__box"><b></b><span></span></div>');
+    node.querySelector('b').textContent = name;
+    node.querySelector('span').textContent = role;
+    node.classList.add('pin');
+    this.layer.append(node);
+    this.labels.add({ obj, el: node, offset: new THREE.Vector3(...offset), minZoom });
+  }
   clearPins() { for (const a of [...this.anchors]) this.unpin(a, { fade: false }); }
 
   bubble(obj, text, { tone = 'ink', offset = [0, .1, 0], speaker } = {}) {
@@ -123,7 +144,7 @@ export class Overlay {
     card.innerHTML = `
       <div class="end__eyebrow">${outcome.eyebrow}</div>
       <h2>${outcome.title}</h2>
-      <ul>${outcome.points.map(p => `<li>${p}</li>`).join('')}</ul>
+      <dl class="end__groups">${outcome.groups.map(g => `<div><dt>${g.label}</dt><dd>${g.text}</dd></div>`).join('')}</dl>
       <div class="end__compare">
         <div><span>${outcome.stat.label}</span><b>${outcome.stat.value}</b></div>
         ${other ? `<div class="is-other"><span>${other.eyebrow.split(' · ')[1]}</span><b>${other.stat.value}</b></div>` : ''}
@@ -141,7 +162,7 @@ export class Overlay {
   hideEnd() { const c = $('#end'); c.classList.remove('is-in'); c.hidden = true; }
 
   /* ---------- hold board (scenario A) ---------- */
-  hold(show, { day = 1, fresh = 1, label = 'Held at the border' } = {}) {
+  hold(show, { day = 1, fresh = 1, label = 'Held at the border', costs = [] } = {}) {
     const h = $('#hold');
     h.hidden = !show;
     if (!show) return;
@@ -150,6 +171,10 @@ export class Overlay {
     $('#holdFresh').style.setProperty('--f', fresh);
     $('#holdFreshText').textContent = `${Math.round(fresh * 100)}%`;
     h.dataset.tone = label.startsWith('Released') ? 'ok' : 'bad';
+    $('#holdCostBox').hidden = !costs.length;
+    const list = $('#holdCosts');
+    while (list.children.length > costs.length) list.lastChild.remove();
+    for (const c of costs.slice(list.children.length)) list.append(el('li', null, c));
   }
 
   /* ---------- at-sea counter ---------- */
@@ -203,4 +228,9 @@ export class Overlay {
     this.sea(false);
     $('#rewind').hidden = true;
   }
+}
+
+function shown(obj) {
+  for (let o = obj; o; o = o.parent) if (!o.visible) return false;
+  return true;
 }

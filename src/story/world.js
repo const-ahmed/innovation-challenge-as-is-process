@@ -12,8 +12,9 @@ import { Character } from '../props/character.js';
 import { Assistant } from '../props/assistant.js';
 import { Fx } from '../props/fx.js';
 import { createRoute } from '../props/route.js';
+import { createStall, createCup } from '../props/stall.js';
 import { US, UK, OFFICE, QUAY_Y } from './places.js';
-import { INFO } from './script.js';
+import { INFO, PEOPLE, BUSINESS } from './script.js';
 
 export function buildWorld(stage) {
   const scene = stage.scene;
@@ -119,9 +120,43 @@ export function buildWorld(stage) {
   scene.add(w.bot.root);
   stage.register(w.bot.root, INFO.assistant, { lift: .1 });
 
+  // the other people: the exporter and shipping agent in Florida, Rose's customers in the UK
+  const person = (look, info) => {
+    const p = new Character(stage, look);
+    scene.add(p.root);
+    stage.register(p.root, info, { lift: .12 });
+    return p;
+  };
+  // a document held up in the right hand, shown when they hand it over
+  const holding = (p, doc) => {
+    const d = createDocument(doc);
+    p.handR.add(d.root);
+    d.root.scale.setScalar(.42);
+    d.root.position.set(0, .2, .07);
+    return d;
+  };
+  w.exporter = person({ top: '#3d7fa6', bottom: '#c9b48c', hair: '#2a1d16', skin: '#9a6440', hairStyle: 'short', hat: '#f3f1ea' }, INFO.exporter);
+  w.exporterDoc = holding(w.exporter, DOCS.find(d => d.id === 'phyto'));
+  w.agent = person({ top: '#e8d23a', bottom: '#2c3550', hair: '#d9b27c', skin: '#f0c8a8', hairStyle: 'long', hat: '#fbf7f0' }, INFO.agent);
+  w.agentDoc = holding(w.agent, DOCS.find(d => d.id === 'lading'));
+  w.customers = [
+    { top: '#4e8f6a', bottom: '#3b3f4a', hair: '#1d1a17', skin: '#8d5a3b', hairStyle: 'short' },
+    { top: '#d4a23c', bottom: '#2c3550', hair: '#a8754a', skin: '#f0c8a8', hairStyle: 'long' },
+    { top: '#7d5ba6', bottom: '#25262c', hair: '#5a4334', skin: '#c98d6a', hairStyle: 'short', hat: '#c8463d' },
+  ].map(look => {
+    const c = person(look, INFO.customers);
+    c.cup = createCup(c.handR);
+    c.cup.position.set(0, -.04, .07);
+    return c;
+  });
+  w.stall = createStall(BUSINESS);
+  scene.add(w.stall.root);
+  stage.register(w.stall.root, INFO.stall, { lift: .2 });
+
   /* ---------- helpers ---------- */
   const officePoint = (lx, lz, y = 0) => new THREE.Vector3(OFFICE.origin[0] + lx, y, OFFICE.origin[2] + lz);
   w.officePoint = officePoint;
+  w.stall.root.position.copy(officePoint(...OFFICE.stall));
 
   w.containerTo = where => {
     const c = w.container;
@@ -135,6 +170,22 @@ export function buildWorld(stage) {
     const p = officePoint(OFFICE.seat[0], OFFICE.seat[1]);
     w.her.placeAt(p.x, 0, p.z, Math.PI);
     w.her.pose('sit', { duration: 0 });
+  };
+  w.serveAtStall = () => {
+    const p = officePoint(...OFFICE.server);
+    w.her.placeAt(p.x, 0, p.z, Math.PI / 2 - .35);
+    w.her.pose('stand', { duration: 0 });
+  };
+  // The customers queue at the stall; `mood` sets how they look (waiting, happy, let down).
+  w.setCustomers = mood => {
+    w.customers.forEach((c, i) => {
+      const [x, z, yaw] = OFFICE.customers[i], p = officePoint(x, z);
+      c.placeAt(p.x, 0, p.z, yaw);
+      c.cup.visible = mood === 'happy';
+      c.pose(mood === 'happy' ? (i === 1 ? 'cheer' : 'holdUp') : mood === 'sad' ? 'slump' : 'stand', { duration: 0 });
+      c.setExpression(mood === 'happy' ? 'happy' : mood === 'sad' ? 'sad' : 'neutral', 0);
+    });
+    w.stall.setBoard({ waiting: 'low', happy: 'open', sad: 'soldout' }[mood] ?? 'open');
   };
   w.standInOffice = () => {
     const p = officePoint(OFFICE.stand[0], OFFICE.stand[1]);
@@ -177,8 +228,29 @@ export function buildWorld(stage) {
     Object.keys(w.her.flags).forEach(k => { w.her.flags[k] = false; });
     w.her.setExpression('neutral', 0);
     w.standInOffice();
+    w.exporter.placeAt(US.exporter[0], QUAY_Y, US.exporter[1], -.35);
+    w.agent.placeAt(US.agent[0], QUAY_Y, US.agent[1], 2.75);
+    for (const p of [w.exporter, w.agent]) { p.pose('stand', { duration: 0 }); p.setExpression('happy', 0); }
+    w.exporterDoc.root.visible = false;
+    w.agentDoc.root.visible = false;
+    w.setCustomers('waiting');
     stage.select(null);
   };
 
   return w;
+}
+
+// Name labels that stay on screen (the overlay is built after the world).
+export function labelWorld(w, ui) {
+  const people = { minZoom: 14 };
+  ui.label(w.her.root, PEOPLE.rose, people);
+  ui.label(w.exporter.root, PEOPLE.exporter, people);
+  ui.label(w.agent.root, PEOPLE.agent, people);
+  ui.label(w.customers[1].root, PEOPLE.customers, people);
+  ui.label(w.bot.root, PEOPLE.checker, { ...people, offset: [0, -.3, 0] });
+  const cab = new THREE.Object3D();
+  cab.position.set(4.15, 3.5, 0);
+  w.truck.body.add(cab);
+  ui.label(cab, PEOPLE.truck, { above: true, minZoom: 10 });
+  ui.label(w.checkpoint.booth, PEOPLE.border, { above: true, offset: [0, 4.8, 0], minZoom: 10 });
 }

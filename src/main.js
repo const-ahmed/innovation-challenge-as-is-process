@@ -1,6 +1,6 @@
 // Boot: stage → world → UI → director. Scenes are plain modules registered here.
 import { Stage } from './engine/stage.js';
-import { buildWorld } from './story/world.js';
+import { buildWorld, labelWorld } from './story/world.js';
 import { Overlay } from './ui/overlay.js';
 import { Declaration } from './ui/declaration.js';
 import { Feedback } from './ui/feedback.js';
@@ -24,6 +24,7 @@ const stage = new Stage($('#stage'), { background: '#f4eadb', groundY: -4 });
 const world = buildWorld(stage);
 world.reset();
 const ui = new Overlay(stage);
+labelWorld(world, ui);
 const form = new Declaration($('#formHost'));
 const director = new Director({ stage, world, ui, form, scenes });
 

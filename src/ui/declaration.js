@@ -146,6 +146,25 @@ export class Declaration {
       await wait(900);
     }
   }
+  // The official guidance, looked up from the checker's prompt: type the query, then list what it says.
+  async guidance({ source, query, rows }, wait) {
+    const s = $(this.root, '.decl__search');
+    const q = $(s, '.search__q'), res = $(s, '.search__res');
+    s.hidden = false;
+    q.textContent = ''; res.innerHTML = '';
+    for (let i = 1; i <= query.length; i++) { q.textContent = query.slice(0, i); await wait(38); }
+    res.innerHTML = '<span class="spinner"></span> Opening guidance…';
+    await wait(700);
+    this.showGuidance({ source, rows });
+  }
+  showGuidance({ source, rows }) {
+    const s = $(this.root, '.decl__search');
+    s.hidden = false;
+    const res = $(s, '.search__res');
+    res.innerHTML = `<div class="guide"><span class="guide__src"></span>${rows.map(r => `<div class="guide__row" data-state="${r.state}"><code>${r.code}</code><span>${r.text}</span></div>`).join('')}</div>`;
+    $(res, '.guide__src').textContent = source;
+  }
+
   hideSearch() { $(this.root, '.decl__search').hidden = true; }
 
   async clickSubmit(wait) {

@@ -2,7 +2,7 @@
 // container waits at the border.
 import { ease, lerp } from '../../engine/tween.js';
 import { CAM } from '../cameras.js';
-import { LINES, REJECTION, OUTCOMES } from '../script.js';
+import { LINES, REJECTION, OUTCOMES, HOLD_COSTS } from '../script.js';
 import { setBranchState, sail, craneTransfer, drive, nightPasses, standUp, deliver, delivered, crossing } from '../actions.js';
 import { OFFICE } from '../places.js';
 
@@ -139,7 +139,7 @@ export default {
         w.sample.root.visible = true;
         w.sample.root.scale.setScalar(.001);
         await ctx.play({ duration: 500, easing: ease.outBack, onUpdate: t => w.sample.root.scale.setScalar(Math.max(.001, t)) });
-        ui.hold(true, { day: 1, fresh: 1 });
+        ui.hold(true, { day: 1, fresh: 1, costs: HOLD_COSTS.slice(0, 1) });
         await ctx.wait(1200);
       },
       end(ctx) {
@@ -149,7 +149,7 @@ export default {
         w.sample.root.visible = true;
         w.sample.root.scale.setScalar(1);
         ctx.state.held ??= heldTag(ui, w, 'Held at the border', 'Declaration rejected');
-        ui.hold(true, { day: 1, fresh: 1 });
+        ui.hold(true, { day: 1, fresh: 1, costs: HOLD_COSTS.slice(0, 1) });
         stage.jumpCamera(CAM.checkpoint);
       },
     },
@@ -162,7 +162,8 @@ export default {
         const nextDay = () => {
           day += 1;
           const f0 = FRESH_BY_DAY[day - 1], f1 = FRESH_BY_DAY[day];
-          ctx.tween({ duration: 900, onUpdate: t => { const f = lerp(f0, f1, t); w.sample.setFreshness(f); ui.hold(true, { day, fresh: f }); } });
+          const costs = HOLD_COSTS.slice(0, Math.min(day, HOLD_COSTS.length));
+          ctx.tween({ duration: 900, onUpdate: t => { const f = lerp(f0, f1, t); w.sample.setFreshness(f); ui.hold(true, { day, fresh: f, costs }); } });
           w.office.setDay(day);
         };
         await nightPasses(ctx, { day: GREYER, light: .88, onMidnight: nextDay });
@@ -175,7 +176,7 @@ export default {
         w.phone.visible = true;
         her.pose('phone', { duration: 400 });
         her.flags.talking = true;
-        const rant = ui.bubble(her.headTop, 'It’s still held? What exactly is wrong with it?', { speaker: 'Importer', tone: 'red' });
+        const rant = ui.bubble(her.headTop, 'It’s still held? What exactly is wrong with it?', { speaker: 'Rose', tone: 'red' });
         const desk = w.officePoint(OFFICE.seat[0], OFFICE.seat[1] + .55);
         const pacing = (async () => {
           await ctx.do(her.walkTo(desk.x - 2.2, desk.z + 1.4, { speed: 1.2 }));
@@ -214,7 +215,7 @@ export default {
         her.setExpression('sad', 0);
         w.office.setDay(4);
         w.sample.setFreshness(FRESH_BY_DAY[4]);
-        ui.hold(true, { day: 4, fresh: FRESH_BY_DAY[4] });
+        ui.hold(true, { day: 4, fresh: FRESH_BY_DAY[4], costs: HOLD_COSTS });
         ctx.state.held?.close();
         ctx.state.held = heldTag(ui, w, 'Still held', 'Storage charges adding up');
         stage.setMood({ bg: GREYER, light: .88 });
@@ -227,7 +228,7 @@ export default {
       async run(ctx) {
         const { world: w, ui, stage } = ctx;
         ctx.state.held?.close();
-        ui.hold(true, { day: 4, fresh: FRESH_BY_DAY[4], label: 'Released · Day 4' });
+        ui.hold(true, { day: 4, fresh: FRESH_BY_DAY[4], label: 'Released · Day 4', costs: HOLD_COSTS });
         w.checkpoint.setLamp('amber');
         await ctx.wait(600);
         w.checkpoint.setLamp('green');
@@ -255,7 +256,7 @@ export default {
       label: 'A late delivery',
       caption: L.late,
       async run(ctx) {
-        const { world: w, ui, director } = ctx, her = w.her;
+        const { world: w, ui } = ctx, her = w.her;
         await deliver(ctx, { fresh: FRESH_BY_DAY[4] });
         w.orange.userData.mat.color.set('#9b8247');
         w.orange.visible = true;
@@ -264,6 +265,24 @@ export default {
         await ctx.wait(1400);
         ui.sticker(her.headTop, '…', { tone: 'ink', life: 1800 });
         await ctx.wait(1600);
+      },
+      end(ctx) { delivered(ctx, { fresh: FRESH_BY_DAY[4], orange: '#9b8247', pose: 'holdLow', expression: 'sad' }); },
+    },
+    {
+      label: 'Sold out',
+      caption: L.soldout,
+      async run(ctx) {
+        const { world: w, ui, director } = ctx;
+        await ctx.camera(CAM.stall, { duration: 2200, arc: .3 });
+        w.stall.setBoard('soldout');
+        w.customers.forEach((c, i) => {
+          c.setExpression(i === 1 ? 'confused' : 'sad');
+          c.pose(i === 1 ? 'shrug' : 'slump', { duration: 500 });
+        });
+        const moan = ui.bubble(w.customers[2].headTop, 'Sold out again? I’ll try somewhere else.', { speaker: 'Customer', tone: 'red' });
+        await ctx.wait(3200);
+        moan.close();
+        await ctx.wait(1200);
         ui.endCard('a', OUTCOMES.a, {
           other: OUTCOMES.b,
           onNext: () => director.play('b', { from: 'a' }),
@@ -272,7 +291,7 @@ export default {
         return null;
       },
       end() {},
-      still(ctx) { delivered(ctx, { fresh: FRESH_BY_DAY[4], orange: '#9b8247', pose: 'holdLow', expression: 'sad' }); },
+      still({ world: w, stage }) { w.setCustomers('sad'); stage.jumpCamera(CAM.stall); },
     },
   ],
 };

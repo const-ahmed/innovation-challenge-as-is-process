@@ -55,6 +55,19 @@ export function createTruck(stage, route) {
   for (const s of [-1, 1]) box(1.2, .9, .06, glass, 4.3, 1.9, s * 1.26, body);
   box(9.2, .35, 2.2, dark, .2, .75, 0, body);
   box(.5, .5, 2.4, M('#d8d6d0'), 5.25, .45, 0, body);
+  // livery on both cab doors
+  const livery = canvasTex(512, 220, (g, w, h) => {
+    g.fillStyle = '#2f5597'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#fbf7f0'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = font(700, 92); g.fillText('JOHN’S', w / 2, h / 2 - 44);
+    g.font = font(700, 70); g.fillText('TRUCKING', w / 2, h / 2 + 50);
+  });
+  const liveryMat = new THREE.MeshStandardMaterial({ map: livery, roughness: .6 });
+  for (const s of [-1, 1]) {
+    const faces = Array(6).fill(red);
+    faces[s > 0 ? 4 : 5] = liveryMat;
+    box(1.9, .85, .03, faces, 4.15, .85, s * 1.265, body);
+  }
   const wheels = [];
   for (const x of [-3.4, -2.3, 1.2, 4.3]) for (const s of [-1, 1]) {
     const w = cyl(.5, .4, dark, x, 0, 0, body, 16);

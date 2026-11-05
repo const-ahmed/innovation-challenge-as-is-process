@@ -1,4 +1,5 @@
-// The importer: a jointed toy figure with poses, a walk cycle, blinking and expressions.
+// A jointed toy figure with poses, a walk cycle, blinking and expressions. Rose by default;
+// the other people in the story change its colours, hair and hat.
 // Local forward is +z. Her right side is local -x.
 import * as THREE from 'three';
 import { M, mesh, box, sph, capsule, group, prop, castShadows, shortestAngle } from '../engine/kit.js';
@@ -48,7 +49,8 @@ const FACES = {
 };
 
 export class Character {
-  constructor(stage, { top = '#e0694e', bottom = '#2c3550', hair = '#3b2a22', skin = '#c98d6a', shoes = '#25262c' } = {}) {
+  // hairStyle: 'bun' | 'short' | 'long'. hat: a colour for a cap, or null.
+  constructor(stage, { top = '#e0694e', bottom = '#2c3550', hair = '#3b2a22', skin = '#c98d6a', shoes = '#25262c', hairStyle = 'bun', hat = null } = {}) {
     this.stage = stage;
     const { root, body } = prop();
     this.root = root; this.body = body;
@@ -83,8 +85,17 @@ export class Character {
     for (const s of [-1, 1]) sph(.035, m.skin, s * .2, .19, 0, head, 10, 8);  // ears
     const cap = mesh(new THREE.SphereGeometry(.216, 28, 16, 0, Math.PI * 2, 0, Math.PI * .34), m.hair, head, 0, .2, 0);
     cap.rotation.x = -.18;
-    mesh(new THREE.SphereGeometry(.219, 28, 16, Math.PI, Math.PI, 0, Math.PI * .72), m.hair, head, 0, .2, 0);
-    sph(.1, m.hair, 0, .36, -.16, head, 16, 12);              // bun
+    const back = { bun: .72, short: .55, long: .9 }[hairStyle];
+    mesh(new THREE.SphereGeometry(.219, 28, 16, Math.PI, Math.PI, 0, Math.PI * back), m.hair, head, 0, .2, 0);
+    if (hairStyle === 'bun') sph(.1, m.hair, 0, .36, -.16, head, 16, 12);
+    if (hairStyle === 'long') { const fall = box(.36, .3, .08, m.hair, 0, -.02, -.17, head); fall.rotation.x = .12; }
+    if (hat) {
+      const hm = M(hat);
+      const crown = mesh(new THREE.SphereGeometry(.226, 28, 14, 0, Math.PI * 2, 0, Math.PI * .42), hm, head, 0, .21, 0);
+      crown.rotation.x = -.1;
+      const brim = mesh(new THREE.CylinderGeometry(.16, .16, .018, 20, 1, false, -Math.PI / 2, Math.PI), hm, head, 0, .33, .17);
+      brim.rotation.x = .12;
+    }
 
     this.eyes = [-1, 1].map(s => { const e = sph(.027, m.eye, s * .073, .215, .178, head, 12, 10); e.scale.y = 1.3; return e; });
     this.brows = [1, -1].map(s => box(.08, .016, .02, m.hair, s * .075, .27, .182, head));

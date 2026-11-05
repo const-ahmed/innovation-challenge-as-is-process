@@ -4,10 +4,37 @@ import { ease } from '../../engine/tween.js';
 import { CAM } from '../cameras.js';
 import { LINES } from '../script.js';
 import { craneTransfer, hornPuff } from '../actions.js';
-import { QUAY_Y, US } from '../places.js';
+import { QUAY_Y, US, OFFICE } from '../places.js';
 
 const L = LINES.prepare;
 const DOC_SPOTS = [[-1, 2.35, .2], [0, 2.75, .45], [1, 2.35, .2]];
+// where the paperwork lands: around the exporter in Florida
+const docDest = (w, i) => new THREE.Vector3(US.exporter[0] + (i - 1) * .9, 2.3 + i * .25, US.exporter[1] - .6);
+
+// Someone hands over a document: hold it up and say so.
+async function handOver(ctx, person, doc, line, speaker) {
+  doc.root.visible = true;
+  doc.root.scale.setScalar(.001);
+  ctx.tween({ duration: 420, easing: ease.outBack, onUpdate: t => doc.root.scale.setScalar(Math.max(.001, t * .42)) });
+  person.setExpression('happy');
+  person.pose('holdUp', { duration: 450 });
+  person.flags.talking = true;
+  const say = ctx.ui.bubble(person.headTop, line, { speaker });
+  await ctx.wait(3400);
+  person.flags.talking = false;
+  say.close();
+  await ctx.play({ duration: 300, easing: ease.inBack, onUpdate: t => doc.root.scale.setScalar(Math.max(.001, (1 - t) * .42)) });
+  doc.root.visible = false;
+  person.pose('stand', { duration: 400 });
+}
+// after the hand-over (end), or mid-way with the document held up (the storyboard's still)
+function handedOver(person, doc, { holding = false } = {}) {
+  doc.root.visible = holding;
+  doc.root.scale.setScalar(.42);
+  person.flags.talking = false;
+  person.setExpression('happy', 0);
+  person.pose(holding ? 'holdUp' : 'stand', { duration: 0 });
+}
 
 function placeDocs(w) {
   const base = w.her.root.position;
@@ -25,30 +52,64 @@ export default {
   init({ world: w, stage, form }) {
     w.reset();
     w.crates.forEach(c => { c.root.visible = false; });
+    w.serveAtStall();
+    w.her.setExpression('happy', 0);
     form.hide();
     form.reset();
-    stage.jumpCamera(CAM.officeIntro);
+    stage.jumpCamera(CAM.stall);
   },
 
   beats: [
     {
+      label: 'Meet Rose',
+      caption: L.meet,
+      async run(ctx) {
+        const { world: w, ui } = ctx, her = w.her, first = w.customers[0];
+        await ctx.wait(1200);
+        her.pose('holdUp', { duration: 450 });
+        await ctx.wait(500);
+        first.cup.visible = true;
+        first.setExpression('happy');
+        first.pose('holdUp', { duration: 450 });
+        her.pose('stand', { duration: 450 });
+        const ask = ui.bubble(w.customers[2].headTop, 'Two more, please! Everyone’s talking about this juice.', { speaker: 'Customer' });
+        await ctx.wait(2600);
+        ask.close();
+        her.setExpression('worried');
+        const low = ui.bubble(her.headTop, 'I’m nearly out of oranges…', { speaker: 'Rose' });
+        await ctx.wait(2200);
+        low.close();
+      },
+      end({ world: w, stage }) {
+        w.customers[0].cup.visible = true;
+        w.customers[0].setExpression('happy', 0);
+        w.customers[0].pose('holdUp', { duration: 0 });
+        w.her.setExpression('worried', 0);
+        w.her.pose('stand', { duration: 0 });
+        stage.jumpCamera(CAM.stall);
+      },
+    },
+    {
       label: 'Placing the order',
-      caption: L.intro,
+      caption: L.order,
       async run(ctx) {
         const { world: w, ui } = ctx, her = w.her;
+        const spot = w.officePoint(...OFFICE.stand);
+        ctx.camera(CAM.officeIntro, { duration: 3200 });
+        await ctx.do(her.walkTo(spot.x, spot.z, { speed: 2.4, face: -.45 }));
         her.setExpression('happy');
-        await ctx.wait(900);
         w.phone.visible = true;
         her.pose('phone', { duration: 500 });
         await ctx.wait(500);
         her.flags.talking = true;
-        const call = ui.bubble(her.headTop, 'One container of navel oranges, shipping this week. Perfect!', { speaker: 'Importer' });
+        const call = ui.bubble(her.headTop, 'One container of navel oranges, shipping this week. Perfect!', { speaker: 'Rose' });
         await ctx.camera(CAM.office, { duration: 3000 });
         await ctx.wait(800);
         call.close();
         this.end(ctx);
       },
       end({ world: w, stage }) {
+        w.standInOffice();
         w.her.flags.talking = false;
         w.her.setExpression('happy', 0);
         w.phone.visible = false;
@@ -82,10 +143,9 @@ export default {
         const { world: w } = ctx, her = w.her;
         her.pose('wave', { duration: 300 });
         her.flags.waving = true;
-        // the documents fly to the USA while the camera pulls out to the whole map
-        const dest = new THREE.Vector3(US.containerDoor[0], 1.7, US.containerDoor[1]);
+        // the documents fly to her exporter in Florida while the camera pulls out to the whole map
         const flights = w.docs.map((d, i) => {
-          const p0 = d.root.position.clone(), p2 = dest.clone().add(new THREE.Vector3(0, i * .6, (i - 1) * .9));
+          const p0 = d.root.position.clone(), p2 = docDest(w, i);
           const p1 = p0.clone().lerp(p2, .5).setY(220);
           const r0 = d.root.rotation.clone();
           return ctx.play({
@@ -103,7 +163,7 @@ export default {
         her.flags.waving = false;
         her.pose('stand', { duration: 300 });
         await pull;
-        await ctx.camera(CAM.usPort, { duration: 1900 });
+        await ctx.camera(CAM.exporter, { duration: 1900 });
         await ctx.all(flights);
         await ctx.all(w.docs.map(d => ctx.play({ duration: 380, easing: ease.inBack, onUpdate: t => d.root.scale.setScalar(Math.max(.001, 1 - t)), onComplete: () => { d.root.visible = false; } })));
       },
@@ -111,20 +171,36 @@ export default {
         w.docs.forEach(d => { d.root.visible = false; });
         w.her.flags.waving = false;
         w.her.pose('stand', { duration: 0 });
-        stage.jumpCamera(CAM.usPort);
+        stage.jumpCamera(CAM.exporter);
       },
       // the documents halfway across the map
       still(ctx) {
         const w = ctx.world;
         placeDocs(w);
-        const dest = new THREE.Vector3(US.containerDoor[0], 1.7, US.containerDoor[1]);
         w.docs.forEach((d, i) => {
-          const p0 = d.root.position.clone(), p2 = dest.clone().add(new THREE.Vector3(0, i * .6, (i - 1) * .9));
+          const p0 = d.root.position.clone(), p2 = docDest(w, i);
           d.root.position.copy(p0.lerp(p2, .5).setY(110 + i * 40));
           d.root.scale.setScalar(40);
         });
         w.her.pose('wave', { duration: 0 });
         ctx.stage.jumpCamera(CAM.world);
+      },
+    },
+    {
+      label: 'The export permits',
+      caption: L.permits,
+      async run(ctx) {
+        const w = ctx.world;
+        await handOver(ctx, w.exporter, w.exporterDoc, 'Order received! We’ll sort the export permits. Here’s the phytosanitary certificate.', 'Sunrise Citrus');
+        await ctx.wait(400);
+      },
+      end({ world: w, stage }) {
+        handedOver(w.exporter, w.exporterDoc);
+        stage.jumpCamera(CAM.exporter);
+      },
+      still({ world: w, stage }) {
+        handedOver(w.exporter, w.exporterDoc, { holding: true });
+        stage.jumpCamera(CAM.exporter);
       },
     },
     {
@@ -188,6 +264,24 @@ export default {
         w.containerTo('ship');
         w.usCrane.set(10.55, 10.5);
         stage.jumpCamera(CAM.usLoad);
+      },
+    },
+    {
+      label: 'The bill of lading',
+      caption: L.lading,
+      async run(ctx) {
+        const w = ctx.world;
+        await ctx.camera(CAM.agent, { duration: 1800 });
+        await handOver(ctx, w.agent, w.agentDoc, 'Your container’s aboard. Here’s the bill of lading.', 'Atlantic Star Line');
+        await ctx.wait(400);
+      },
+      end({ world: w, stage }) {
+        handedOver(w.agent, w.agentDoc);
+        stage.jumpCamera(CAM.agent);
+      },
+      still({ world: w, stage }) {
+        handedOver(w.agent, w.agentDoc, { holding: true });
+        stage.jumpCamera(CAM.agent);
       },
     },
   ],
