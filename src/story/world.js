@@ -5,7 +5,7 @@ import { group } from '../engine/kit.js';
 import { buildTerrain } from '../props/terrain.js';
 import { createShip } from '../props/ship.js';
 import { createContainer, createCrate, createTree, createPackhouse, createPallet, createOrange } from '../props/cargo.js';
-import { createCrane, createTruck, createCheckpoint } from '../props/port.js';
+import { createCrane, createTruck, createCheckpoint, createVan } from '../props/port.js';
 import { createOffice } from '../props/office.js';
 import { createDocument, DOCS } from '../props/documents.js';
 import { Character } from '../props/character.js';
@@ -49,6 +49,12 @@ export function buildWorld(stage) {
     stage.register(c.root, INFO.crate, { lift: .25 });
     w.crates.push(c);
   }
+
+  const van = createVan({ color: '#3d7fa6', lines: ['SUNRISE CITRUS CO.', 'Exporters · Florida'] });
+  van.root.position.set(US.van[0], QUAY_Y, US.van[1]);
+  van.root.rotation.y = 0;
+  scene.add(van.root);
+  stage.register(van.root, INFO.exporter, { lift: .3 });
 
   w.usCrane = createCrane('#e0a43a');
   w.usCrane.root.position.set(US.crane[0], QUAY_Y, US.crane[1]);
@@ -228,7 +234,7 @@ export function buildWorld(stage) {
     Object.keys(w.her.flags).forEach(k => { w.her.flags[k] = false; });
     w.her.setExpression('neutral', 0);
     w.standInOffice();
-    w.exporter.placeAt(US.exporter[0], QUAY_Y, US.exporter[1], -.35);
+    w.exporter.placeAt(US.exporter[0], QUAY_Y, US.exporter[1], 2.8);
     w.agent.placeAt(US.agent[0], QUAY_Y, US.agent[1], 2.75);
     for (const p of [w.exporter, w.agent]) { p.pose('stand', { duration: 0 }); p.setExpression('happy', 0); }
     w.exporterDoc.root.visible = false;

@@ -30,8 +30,9 @@ export const US = {
   packhouse: us(-32, -25),
   grove: { x0: US_BERTH[0] - 62, z0: US_BERTH[1] - 50, cols: 3, rows: 3, gap: 7 },
   flag: us(16, -14),
-  exporter: us(-15.2, -13.6),        // by the pallet of crates
-  agent: us(3.2, -13.4),             // on the quay by the ship
+  exporter: us(-12.6, -18.4),        // in front of their van, seen from the land side
+  agent: us(7.2, -13.4),             // on the quay by the ship
+  van: us(-13.6, -15.6),             // the exporter’s van, parked between them and the quay
 };
 
 const ROAD_X = 12;   // the UK road north from the port, relative to the berth

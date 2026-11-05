@@ -191,7 +191,7 @@ export default {
       caption: L.permits,
       async run(ctx) {
         const w = ctx.world;
-        await handOver(ctx, w.exporter, w.exporterDoc, 'Order received! We’ll sort the export permits. Here’s the phytosanitary certificate.', 'Sunrise Citrus');
+        await handOver(ctx, w.exporter, w.exporterDoc, 'Order received! We’ll sort the export permits. Here’s the phytosanitary certificate.', 'Exporter');
         await ctx.wait(400);
       },
       end({ world: w, stage }) {
@@ -272,7 +272,7 @@ export default {
       async run(ctx) {
         const w = ctx.world;
         await ctx.camera(CAM.agent, { duration: 1800 });
-        await handOver(ctx, w.agent, w.agentDoc, 'Your container’s aboard. Here’s the bill of lading.', 'Atlantic Star Line');
+        await handOver(ctx, w.agent, w.agentDoc, 'Your container’s aboard. Here’s the bill of lading.', 'Shipping agent');
         await ctx.wait(400);
       },
       end({ world: w, stage }) {

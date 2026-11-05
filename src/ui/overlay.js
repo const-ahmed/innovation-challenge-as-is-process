@@ -61,7 +61,8 @@ export class Overlay {
   label(obj, { name, role }, { offset = [0, 0, 0], above = false, minZoom = 7 } = {}) {
     const node = el('div', `plate${above ? ' plate--above' : ''}`, '<div class="plate__box"><b></b><span></span></div>');
     node.querySelector('b').textContent = name;
-    node.querySelector('span').textContent = role;
+    if (role) node.querySelector('span').textContent = role;
+    else node.querySelector('span').remove();
     node.classList.add('pin');
     this.layer.append(node);
     this.labels.add({ obj, el: node, offset: new THREE.Vector3(...offset), minZoom });

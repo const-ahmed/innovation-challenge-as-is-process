@@ -8,14 +8,16 @@ export const FEEDBACK = { repo: 'const-ahmed/innovation-challenge-as-is-process'
 
 // The people in the story. Their name labels stay on screen.
 export const BUSINESS = 'Rose’s Squeeze';
+// Labels give each person's role; only Rose goes by name. The businesses' names are painted on
+// their things instead: the stall, the exporter's van and packhouse, the ship, the truck.
 export const PEOPLE = {
-  rose: { name: 'Rose', role: `Importer · owner of ${BUSINESS}` },
-  exporter: { name: 'Sunrise Citrus Co.', role: 'Exporter & freight forwarder' },
-  agent: { name: 'Atlantic Star Line', role: 'Shipping agent' },
-  customers: { name: 'Rose’s customers', role: 'Here for the juice' },
-  checker: { name: 'Pre-submission checker', role: 'Proposed service' },
-  truck: { name: 'John’s Trucking', role: 'Haulier' },
-  border: { name: 'Border control', role: 'UK customs checkpoint' },
+  rose: { name: 'Rose', role: 'Importer' },
+  exporter: { name: 'Exporter & freight forwarder' },
+  agent: { name: 'Shipping agent' },
+  customers: { name: 'Customers' },
+  checker: { name: 'Pre-submission checker' },
+  truck: { name: 'Haulier' },
+  border: { name: 'UK border control' },
 };
 
 export const VOYAGE = { from: 'Florida', to: 'Southampton', days: 10 };   // illustrative
@@ -44,10 +46,10 @@ export const LINES = {
     order: 'Her juice is catching on and stock is running low. To keep up, she orders a container of fresh navel oranges from Florida.',
     docs: 'She arranges the shipment and the paperwork that travels with it.',
     fly: 'Her order and paperwork go to her exporter in Florida.',
-    permits: 'Sunrise Citrus, her exporter and freight forwarder, arranges the export permits, such as the phytosanitary certificate.',
+    permits: 'Her exporter and freight forwarder in Florida arranges the export permits, such as the phytosanitary certificate.',
     pack: 'In the USA, the oranges are packed and loaded into a refrigerated container.',
     load: 'The container is lifted onto a cargo ship bound for the UK.',
-    lading: 'The shipping line’s agent issues the bill of lading: the receipt for her cargo and the contract to carry it.',
+    lading: 'The shipping agent issues the bill of lading: the receipt for her cargo and the contract to carry it.',
   },
   journey: {
     sail: 'The ship sets off across the Atlantic.',
@@ -64,7 +66,7 @@ export const LINES = {
     search: 'She searches guidance and tariff pages, trying to work out the problem.',
     arrive: 'The ship arrives before she can fix it.',
     hold: 'The container is held at the border while the declaration is sorted out.',
-    days: 'Days pass. Port storage charges build up, John’s Trucking bills for waiting time, and the fruit is losing freshness.',
+    days: 'Days pass. Port storage charges build up, the haulier bills for waiting time, and the fruit is losing freshness.',
     release: 'Day 4. The corrected declaration is accepted and the container is released.',
     late: 'Her oranges finally arrive, days late and less fresh.',
     soldout: 'Meanwhile the juice has sold out, and her customers are let down.',
@@ -109,7 +111,7 @@ export const GUIDANCE = {
 };
 
 // The charges listed on the hold board as the days pass.
-export const HOLD_COSTS = ['Port storage charges', 'John’s Trucking waiting time', 'Hours spent fixing the declaration'];
+export const HOLD_COSTS = ['Port storage charges', 'Haulier waiting time', 'Hours spent fixing the declaration'];
 
 export const REJECTION = {
   title: 'Declaration rejected',
@@ -124,7 +126,7 @@ export const OUTCOMES = {
     eyebrow: 'Scenario A · Current system',
     title: 'Held at the border, and it cost her',
     groups: [
-      { label: 'Financial', text: 'Port storage charges, John’s Trucking billing for waiting time, and lost juice sales.' },
+      { label: 'Financial', text: 'Port storage charges, the haulier billing for waiting time, and lost juice sales.' },
       { label: 'Spoilage', text: 'The oranges lost freshness while they were held, so less of the stock was usable.' },
       { label: 'Administrative', text: 'Time spent decoding an unclear rejection, finding the error and resubmitting.' },
       { label: 'Customers', text: 'The juice sold out while she waited for stock.' },

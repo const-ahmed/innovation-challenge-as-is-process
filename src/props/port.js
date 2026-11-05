@@ -151,3 +151,26 @@ export function createCheckpoint({ roadX = 100, barrierZ = -27, boothX = 105.5, 
     },
   };
 }
+
+/* ---------- van ---------- */
+// A small branded van, forward along local +x, its name on both sides.
+export function createVan({ color = '#3d7fa6', lines = [] } = {}) {
+  const { root, body } = prop();
+  const paint = M(color), dark = M('#25262c'), glass = M('#9cc6d4', { roughness: .2 });
+  const side = canvasTex(512, 256, (g, w, h) => {
+    g.fillStyle = color; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#fbf7f0'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = font(700, 58); g.fillText(lines[0] ?? '', w / 2, h / 2 - 32);
+    g.font = font(600, 40); g.fillText(lines[1] ?? '', w / 2, h / 2 + 42);
+  });
+  const sideMat = new THREE.MeshStandardMaterial({ map: side, roughness: .6 });
+  box(3.4, 1.9, 1.8, [paint, paint, paint, paint, sideMat, sideMat], -.4, .45, 0, body);
+  box(1.3, 1.3, 1.75, paint, 1.9, .45, 0, body);
+  box(.05, .6, 1.5, glass, 2.56, 1.1, 0, body);
+  for (const x of [-1.4, 1.8]) for (const s of [-1, 1]) {
+    const w = cyl(.38, .3, dark, x, 0, 0, body, 14);
+    w.rotation.x = Math.PI / 2; w.position.set(x, .38, s * .85);
+  }
+  castShadows(root);
+  return { root, body };
+}

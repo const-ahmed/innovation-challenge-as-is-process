@@ -20,12 +20,15 @@ export function createShip(stage) {
 
   const name = canvasTex(512, 96, (g, w, h) => {
     g.fillStyle = '#2b3a5c'; g.fillRect(0, 0, w, h);
-    g.fillStyle = '#f1efe9'; g.font = font(700, 58); g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.letterSpacing = '10px';
-    g.fillText('ATLANTIC STAR', w / 2, h / 2 + 3);
+    g.fillStyle = '#f1efe9'; g.font = font(700, 50); g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.letterSpacing = '6px';
+    g.fillText('ATLANTIC STAR LINE', w / 2, h / 2 + 3);
   });
-  const nm = mesh(new THREE.PlaneGeometry(9, 1.7), new THREE.MeshStandardMaterial({ map: name }), bob, 2, 1.1, 4.01);
-  nm.renderOrder = 1;
+  for (const s of [1, -1]) {   // painted on both sides of the hull
+    const nm = mesh(new THREE.PlaneGeometry(10, 1.9), new THREE.MeshStandardMaterial({ map: name }), bob, 2, 1.1, s * 4.01);
+    nm.rotation.y = s > 0 ? 0 : Math.PI;
+    nm.renderOrder = 1;
+  }
 
   // bridge, funnel, mast
   const white = M('#f1efe9'), dark = M('#2d3446');

@@ -20,8 +20,8 @@ export const CAM = {
   ship: { span: 78, azimuth: -.45, elevation: .6, sx: .5, sy: .55 },
 
   usPort: { target: near(US_BERTH, -9, 1.5, -13.3), span: 40, azimuth: -.35, elevation: 1.0, sx: .5, sy: .55 },
-  exporter: { target: near(US_BERTH, -14.4, 1.1, -13.2), span: 9, azimuth: -.35, elevation: .42, sx: .5, sy: .58 },
-  agent: { target: near(US_BERTH, 3.2, 1.3, -13.4), span: 12, azimuth: 2.75, elevation: .4, sx: .5, sy: .5 },   // from the land side, the ship behind
+  exporter: { target: near(US_BERTH, -13, 1.6, -17.4), span: 12, azimuth: 2.8, elevation: .38, sx: .5, sy: .52 },   // from the land side, the van behind
+  agent: { target: near(US_BERTH, 5.2, 1.8, -13.4), span: 14, azimuth: 2.95, elevation: .36, sx: .5, sy: .52 },   // from the land side, the ship behind
   usLoad: { target: near(US_BERTH, -4, 5, -5.8), span: 48, azimuth: -.5, elevation: .78, sx: .5, sy: .56 },
   ukPort: { target: near(UK_BERTH, 4, 4, -6.8), span: 50, azimuth: -.45, elevation: .78, sx: .5, sy: .55 },
   checkpoint: { target: near(UK_BERTH, 12.5, 2.2, -18.5), span: 28, azimuth: .55, elevation: .52, sx: .5, sy: .55 },

@@ -102,7 +102,7 @@ export function createPackhouse() {
   const sign = canvasTex(512, 128, (g, w, h) => {
     g.fillStyle = '#fbf6ee'; g.fillRect(0, 0, w, h);
     g.fillStyle = '#b4553f'; g.font = font(700, 54); g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText('CITRUS PACKHOUSE', w / 2, h / 2 + 2);
+    g.fillText('SUNRISE CITRUS CO.', w / 2, h / 2 + 2);
   });
   mesh(new THREE.PlaneGeometry(5, 1.25), new THREE.MeshStandardMaterial({ map: sign }), body, -1.6, 3.1, 3.52);
   castShadows(root);
