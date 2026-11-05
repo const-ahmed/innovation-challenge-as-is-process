@@ -20,7 +20,7 @@ Add `#prepare`, `#journey`, `#a` or `#b` to the URL to open a chapter directly, 
 
 ## Deploying
 
-`index.html` is the deployable page; any static host can serve the folder as it is, with no build step. It's live on GitHub Pages at https://const-ahmed.github.io/innovation-challenge-as-is-process/ (deploys from `main`), which work networks that block newer domains usually allow. On Vercel, use the "Other" preset with the root directory `./`.
+`index.html` is the deployable page; any static host can serve the folder as it is, with no build step. It's live on GitHub Pages, which work networks that block newer domains usually allow. On Vercel, use the "Other" preset with the root directory `./`.
 
 `index.html` loads three.js and its fonts from `vendor/` rather than a CDN, so it works on networks that block `cdn.jsdelivr.net` or Google Fonts.
 
@@ -29,6 +29,17 @@ Add `#prepare`, `#journey`, `#a` or `#b` to the URL to open a chapter directly, 
 ```sh
 node scripts/build-index.mjs
 ```
+
+### Versions on GitHub Pages
+
+Every branch gets its own link. `.github/workflows/pages.yml` publishes `main` at the root and each other branch in a folder named after it:
+
+| Branch | Link |
+| --- | --- |
+| `main` | https://const-ahmed.github.io/innovation-challenge-as-is-process/ |
+| `v2` | https://const-ahmed.github.io/innovation-challenge-as-is-process/preview/v2/ |
+
+A new branch appears at `preview/<branch>/` a minute or two after its first push (a `/` in the name becomes `-`), and its folder goes when the branch is deleted. The branches never share files: each folder is a full copy of that branch. Pages must be set to deploy from **GitHub Actions** (Settings → Pages → Source).
 
 ## Where things live
 

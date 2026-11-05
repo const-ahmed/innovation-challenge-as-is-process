@@ -1,0 +1,58 @@
+# Publishes the whole GitHub Pages site: main at the root, and every other branch in its own
+# folder, so each version has a link of its own:
+#   https://const-ahmed.github.io/innovation-challenge-as-is-process/             ← main
+#   https://const-ahmed.github.io/innovation-challenge-as-is-process/preview/v2/  ← branch v2
+# Runs when main changes, when another branch changes (through branch-pushed.yml), when a
+# branch is deleted (its folder goes), or by hand from the Actions tab.
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+  delete:
+  workflow_run:
+    workflows: [Branch pushed]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Assemble main and every branch
+        run: |
+          mkdir -p _site
+          git archive origin/main | tar -x -C _site
+          for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin); do
+            branch=${ref#origin/}
+            case "$branch" in main|HEAD|origin) continue ;; esac
+            dir="_site/preview/${branch//\//-}"
+            mkdir -p "$dir"
+            git archive "$ref" | tar -x -C "$dir"
+            echo "preview/${branch//\//-}/ ← $branch"
+          done
+          rm -rf _site/.github $(find _site/preview -maxdepth 2 -name .github 2>/dev/null)
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

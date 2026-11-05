@@ -1,0 +1,13 @@
+# A push to any branch other than main only signals pages.yml. GitHub lets just the default
+# branch deploy to Pages, so the deploy itself always runs from main (see pages.yml).
+name: Branch pushed
+
+on:
+  push:
+    branches-ignore: [main]
+
+jobs:
+  signal:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.ref_name }} changed; pages.yml will republish the previews."
